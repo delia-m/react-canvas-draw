@@ -35,6 +35,10 @@ const canvasTypes = [
   {
     name: "grid",
     zIndex: 10
+  },
+  {
+    name: "snapshot",
+    zIndex: 9
   }
 ];
 
@@ -171,8 +175,11 @@ export default class extends PureComponent {
     this.image.crossOrigin = "anonymous";
 
     // Draw the image once loaded
-    this.image.onload = () =>
+    this.image.onload = () => {
       drawImage({ ctx: this.ctx.grid, img: this.image });
+      drawImage({ ctx: this.ctx.snapshot, img: this.image });
+    }
+
     this.image.src = this.props.imgSrc;
   };
 
@@ -322,6 +329,7 @@ export default class extends PureComponent {
       this.setCanvasSize(this.canvas.drawing, width, height);
       this.setCanvasSize(this.canvas.temp, width, height);
       this.setCanvasSize(this.canvas.grid, width, height);
+      this.setCanvasSize(this.canvas.snapshot, width, height);
 
       this.drawGrid(this.ctx.grid);
       this.drawImage();
@@ -439,6 +447,9 @@ export default class extends PureComponent {
 
     // Copy the line to the drawing canvas
     this.ctx.drawing.drawImage(this.canvas.temp, 0, 0, width, height);
+    
+    // to snapshot canvas
+    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
 
     // Clear the temporary line-drawing canvas
     this.ctx.temp.clearRect(0, 0, width, height);
@@ -553,6 +564,14 @@ export default class extends PureComponent {
     ctx.arc(brush.x, brush.y, 2, 0, Math.PI * 2, true);
     ctx.fill();
   };
+
+  snapshot = (includeImage = true) => {
+    if (includeImage) {
+      // take a snapshot with image
+      return this.canvas.snapshot.toDataURL("image/jpeg", 1); // data:base64
+    }
+    return this.canvas.drawing.toDataURL("image/jpeg", 1);
+  }
 
   render() {
     return (
