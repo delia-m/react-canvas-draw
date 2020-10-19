@@ -565,12 +565,12 @@ export default class extends PureComponent {
     ctx.fill();
   };
 
-  snapshot = (includeImage = true) => {
+  snapshot = (includeImage = true, quality = 1) => {
     if (includeImage) {
       // take a snapshot with image
-      return this.canvas.snapshot.toDataURL("image/jpeg", 1); // data:base64
+      return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
     }
-    return this.canvas.drawing.toDataURL("image/jpeg", 1);
+    return this.canvas.drawing.toDataURL("image/jpeg", quality);
   }
 
   render() {
