@@ -162,6 +162,35 @@ class Demo extends Component {
 
 
 
+        <h2>Add text</h2>
+        <p>1. Toggle to 'text' mode</p>
+        <p>2. Type text into text input and 'enter'</p>
+        <p>will draw text on canvas. You can move your text, undo last text if it's 'text' mode</p>
+        <p>Back to brush mode on click 'blush mode'</p>
+        <CanvasDraw
+          ref={canvasDraw => (this.textCanvas = canvasDraw)}
+          brushColor={'green'}
+          disabled={this.state.mode === 'text'}
+          hideInterface={this.state.mode === 'text'}
+          mode={this.state.mode}
+          imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
+        />
+        <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>
+        <button onClick={() => this.setState({ mode: 'brush' })}>blush mode</button>
+        <button onClick={() => this.setState({ mode: 'text' })}>add text</button>
+        <button onClick={() => this.textCanvas.undo()}>Undo</button>
+        <button onClick={() => this.textCanvas.clear()}>Claer</button>
+        <button onClick={() => {
+          const snapshot = this.textCanvas.snapshot();
+          console.log(snapshot);
+          this.setState({ textCanvasSnapshot: snapshot });
+        }}>take a snapshot</button>
+        <br />
+        <img src={this.state.textCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
+
+
+
+
         <h2>Hide UI</h2>
         <p>To hide the UI elements, set the `hideInterface` prop. You can also hide the grid with the `hideGrid` prop.</p>
         <CanvasDraw hideInterface hideGrid />

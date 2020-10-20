@@ -2,6 +2,7 @@ import React, { PureComponent } from "react";
 import PropTypes from "prop-types";
 import { LazyBrush } from "lazy-brush";
 import { Catenary } from "catenary-curve";
+import _ from 'lodash';
 
 import ResizeObserver from "resize-observer-polyfill";
 
@@ -29,8 +30,12 @@ const canvasTypes = [
     zIndex: 11
   },
   {
+    name: "text",
+    zIndex: 11
+  },
+  {
     name: "temp",
-    zIndex: 12
+    zIndex: 14
   },
   {
     name: "grid",
@@ -69,6 +74,8 @@ export default class extends PureComponent {
     videoStream: PropTypes.object,
     videoFps: PropTypes.number,
     videoProps: PropTypes.object,
+    inputProps: PropTypes.object,
+    onLastChange: PropTypes.func,
   };
 
   static defaultProps = {
@@ -106,6 +113,7 @@ export default class extends PureComponent {
 
     this.points = [];
     this.lines = [];
+    this.texts = [];
 
     this.mouseHasMoved = true;
     this.valuesChanged = true;
@@ -113,6 +121,14 @@ export default class extends PureComponent {
     this.isPressing = false;
 
     this.video = null;
+    this.state = {
+      textinput: true,
+      text: '',
+      clickedPotision: { x: 10, y: 10 },
+      selectedText: -1,
+      startX: 0,
+      startY: 0,
+    };
   }
 
   componentDidMount() {
@@ -212,8 +228,29 @@ export default class extends PureComponent {
   }
 
   undo = () => {
+    if (this.props.mode === 'text') {
+      this.texts.pop();
+      this.drawText();
+      return;
+    }
+
     const lines = this.lines.slice(0, -1);
-    this.clear();
+
+    this.lines = [];
+    this.valuesChanged = true;
+    this.ctx.drawing.clearRect(
+      0,
+      0,
+      this.canvas.drawing.width,
+      this.canvas.drawing.height
+    );
+    this.ctx.temp.clearRect(
+      0,
+      0,
+      this.canvas.temp.width,
+      this.canvas.temp.height
+    );
+
     this.simulateDrawingLines({ lines, immediate: true });
     this.triggerOnChange();
   };
@@ -221,9 +258,10 @@ export default class extends PureComponent {
   getSaveData = () => {
     // Construct and return the stringified saveData object
     return JSON.stringify({
+      texts: this.texts,
       lines: this.lines,
       width: this.props.canvasWidth,
-      height: this.props.canvasHeight
+      height: this.props.canvasHeight,
     });
   };
 
@@ -232,7 +270,7 @@ export default class extends PureComponent {
       throw new Error("saveData needs to be of type string!");
     }
 
-    const { lines, width, height } = JSON.parse(saveData);
+    const { texts, lines, width, height } = JSON.parse(saveData);
 
     if (!lines || typeof lines.push !== "function") {
       throw new Error("saveData.lines needs to be an array!");
@@ -244,6 +282,7 @@ export default class extends PureComponent {
       width === this.props.canvasWidth &&
       height === this.props.canvasHeight
     ) {
+      this.texts = texts;
       this.simulateDrawingLines({
         lines,
         immediate
@@ -253,6 +292,14 @@ export default class extends PureComponent {
       const scaleX = this.props.canvasWidth / width;
       const scaleY = this.props.canvasHeight / height;
       const scaleAvg = (scaleX + scaleY) / 2;
+
+      if (!_.isEmpty(this.texts)) {
+        this.texts = _.map(texts, t => ({
+          ...t,
+          x: t.x * scaleX,
+          y: t.y * scaleY
+        }));
+      }
 
       this.simulateDrawingLines({
         lines: lines.map(line => ({
@@ -266,6 +313,7 @@ export default class extends PureComponent {
         immediate
       });
     }
+    this.drawText();
   };
 
   simulateDrawingLines = ({ lines, immediate }) => {
@@ -321,6 +369,25 @@ export default class extends PureComponent {
 
     const { x, y } = this.getPointerPos(e);
 
+    if (this.props.mode === 'text') {
+      this.setState({ startX: x, startY: y });
+
+      let selected = false;
+      // Put your mousedown stuff here
+      for (var i = 0; i < this.texts.length; i++) {
+        if (this.textHittest(x, y, i)) {
+          selected = true;
+          this.setState({ selectedText: i });
+        }
+      }
+      if (!selected) {
+        if (this.inputtext) {
+          this.setState({ clickedPotision: { x, y } });
+          this.inputtext.focus();
+        }
+      }
+    }
+
     if (e.touches && e.touches.length > 0) {
       // on touch, set catenary position to touch pos
       this.lazy.update({ x, y }, { both: true });
@@ -331,6 +398,25 @@ export default class extends PureComponent {
   };
 
   handleDrawMove = e => {
+    if (this.props.mode === 'text') {
+      if (this.state.selectedText < 0) {
+        return;
+      }
+
+      e.preventDefault();
+      const { x, y } = this.getPointerPos(e);
+
+      // Put your mousemove stuff here
+      var dx = x - this.state.startX;
+      var dy = y - this.state.startY;
+      this.setState({ startX: x, startY: y });
+
+      var text = this.texts[this.state.selectedText];
+      text.x += dx;
+      text.y += dy;
+      this.drawText();
+    }
+
     e.preventDefault();
 
     const { x, y } = this.getPointerPos(e);
@@ -347,6 +433,15 @@ export default class extends PureComponent {
     this.isDrawing = false;
     this.isPressing = false;
     this.saveLine();
+
+    if (this.props.mode === 'text') {
+      this.setState({ selectedText: -1 });
+    }
+  };
+
+  textHittest = (x, y, textIndex) => {
+    var text = this.texts[textIndex];
+    return (x >= text.x && x <= text.x + text.width && y >= text.y - text.height && y <= text.y);
   };
 
   handleCanvasResize = (entries, observer) => {
@@ -357,6 +452,7 @@ export default class extends PureComponent {
       this.setCanvasSize(this.canvas.drawing, width, height);
       this.setCanvasSize(this.canvas.temp, width, height);
       this.setCanvasSize(this.canvas.grid, width, height);
+      this.setCanvasSize(this.canvas.text, width, height);
       this.setCanvasSize(this.canvas.snapshot, width, height);
       if (this.video) {
         this.setCanvasSize(this.video, width, height);
@@ -490,6 +586,7 @@ export default class extends PureComponent {
   };
 
   clear = () => {
+    this.texts = [];
     this.lines = [];
     this.valuesChanged = true;
     this.ctx.drawing.clearRect(
@@ -503,6 +600,12 @@ export default class extends PureComponent {
       0,
       this.canvas.temp.width,
       this.canvas.temp.height
+    );
+    this.ctx.text.clearRect(
+      0,
+      0,
+      this.canvas.text.width,
+      this.canvas.text.height
     );
   };
 
@@ -611,10 +714,47 @@ export default class extends PureComponent {
       }
     }
     this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, width, height);
+    this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, width, height);
     this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
     // take a snapshot with image
     return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
   };
+
+  drawText = (canvas = 'text') => {
+    this.ctx[canvas].font = "15px verdana";
+    this.ctx[canvas].clearRect(0, 0, this.canvas[canvas].width, this.canvas[canvas].height);
+    for (var i = 0; i < this.texts.length; i++) {
+      var text = this.texts[i];
+      this.ctx[canvas].fillText(text.text, text.x, text.y);
+    }
+  }
+
+  onFinishEditText = () => {
+    if (_.isEmpty(_.trim(this.state.text))) {
+      return;
+    }
+
+    const text = {
+      text: this.state.text,
+      x: this.state.clickedPotision.x,
+      y: this.state.clickedPotision.y + 15
+    };
+    this.ctx.temp.font = "15px verdana";
+    text.width = this.ctx.temp.measureText(text.text).width;
+    text.height = 16;
+
+    // put this new text in the texts array
+    this.texts.push(text);
+    this.drawText();
+
+    let nextInputX = text.x;
+    let nextInputY = Math.min(text.y + 16, this.canvas.temp.height - 30);
+    if (text.y + 16 > this.canvas.temp.height - 30) {
+      nextInputX = nextInputX + 50;
+      nextInputY = 10;
+    }
+    this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
+  }
 
   render() {
     return (
@@ -626,6 +766,7 @@ export default class extends PureComponent {
           touchAction: "none",
           width: this.props.canvasWidth,
           height: this.props.canvasHeight,
+          position: 'relative',
           ...this.props.style
         }}
         ref={container => {
@@ -675,6 +816,33 @@ export default class extends PureComponent {
             />
           );
         })}
+
+        {this.props.mode === 'text' && this.state.textinput && (
+          <input
+            ref={(input) => this.inputtext = input}
+            type="text"
+            autoFocus
+            style={{
+              backgroundColor: 'transparent',
+              border: `1px #ddd solid`,
+              padding: 5,
+              ...this.props.inputProps,
+              position: 'absolute',
+              zIndex: 20, // should be on the top of all canvas
+              transform: `translateX(${this.state.clickedPotision.x}px) translateY(${this.state.clickedPotision.y}px)`
+            }}
+            value={this.state.text}
+            onChange={(event) => {
+              this.setState({ text: event.target.value });
+            }}
+            onBlur={this.onFinishEditText}
+            onKeyDown={(e) => {
+              if (e.keyCode === 13) {
+                this.onFinishEditText();
+              }
+            }}
+          />
+        )}
       </div>
     );
   }
