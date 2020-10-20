@@ -194,7 +194,6 @@ export default class extends PureComponent {
     // Draw the image once loaded
     this.image.onload = () => {
       drawImage({ ctx: this.ctx.grid, img: this.image });
-      drawImage({ ctx: this.ctx.snapshot, img: this.image });
     }
 
     this.image.src = this.props.imgSrc;
@@ -479,9 +478,6 @@ export default class extends PureComponent {
 
     // Copy the line to the drawing canvas
     this.ctx.drawing.drawImage(this.canvas.temp, 0, 0, width, height);
-    
-    // to snapshot canvas
-    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
 
     // Clear the temporary line-drawing canvas
     this.ctx.temp.clearRect(0, 0, width, height);
@@ -598,23 +594,26 @@ export default class extends PureComponent {
   };
 
   snapshot = (includeImage = true, quality = 1) => {
+    const width = this.canvas.grid.width;
+    const height = this.canvas.grid.height;
+
+    this.ctx.snapshot.fillStyle = "#fff";
+    this.ctx.snapshot.fillRect(0, 0, width, height);
+
     if (includeImage) {
       if (this.video) {
         // take video snapshot into background
         // NOTE: video will be stretched if it's smaller than canvas
-        const width = this.canvas.grid.width;
-        const height = this.canvas.grid.height;
-
         // copy video to snapshot canvas
         this.ctx.snapshot.drawImage(this.video, 0, 0, width, height);
-        this.ctx.snapshot.drawImage(this.canvas.grid, 0, 0, width, height);
-        this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, width, height);
-        this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
+      } else if (this.image) {
+        drawImage({ ctx: this.ctx.snapshot, img: this.image });
       }
-      // take a snapshot with image
-      return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
     }
-    return this.canvas.drawing.toDataURL("image/jpeg", quality);
+    this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, width, height);
+    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
+    // take a snapshot with image
+    return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
   };
 
   render() {

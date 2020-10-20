@@ -88,7 +88,10 @@ class Demo extends Component {
         <button onClick={() => {
           const snapshot = this.streamCanvas.snapshot();
           console.log(snapshot);
+          this.setState({ streamCanvasSnapshot: snapshot });
         }}>take a snapshot</button>
+        <br />
+        <img src={this.state.streamCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
 
 
         <h2>Video player + snapshot</h2>
@@ -126,7 +129,10 @@ class Demo extends Component {
         <button onClick={() => {
           const snapshot = this.videoCanvas.snapshot();
           console.log(snapshot);
+          this.setState({ videoCanvasSnapshot: snapshot });
         }}>take a snapshot</button>
+        <br />
+        <img src={this.state.videoCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
 
 
         <h2>Background Image</h2>
@@ -144,7 +150,15 @@ class Demo extends Component {
         <button onClick={() => {
           const snapshot = this.imageCanvas.snapshot();
           console.log(snapshot);
-        }}>take a snapshot</button>
+          this.setState({ imagesCanvasSnapshot: snapshot });
+        }}>take a snapshot with image</button>
+        <button onClick={() => {
+          const snapshot = this.imageCanvas.snapshot(false);
+          console.log(snapshot);
+          this.setState({ imagesCanvasSnapshot: snapshot });
+        }}>take a snapshot without image</button>
+        <br />
+        <img src={this.state.imagesCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
 
 
 
