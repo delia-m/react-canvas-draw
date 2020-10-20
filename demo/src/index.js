@@ -60,6 +60,37 @@ class Demo extends Component {
         </div>
         <CanvasDraw brushColor={this.state.color} />
 
+        <h2>Get local video stream from camera</h2>
+        <p>Base64 image will come in console when take a snapshot</p>
+        <CanvasDraw
+          ref={canvasDraw => (this.streamCanvas = canvasDraw)}
+          brushColor="red"
+          videoStream={this.state.stream}
+          onloaddata={() => {
+            this.setState({ playbutton: true })
+            if (this.streamCanvas.video) {
+              let width = this.streamCanvas.video.videoWidth;
+              let height = this.streamCanvas.video.videoHeight;
+              this.setState({
+                videoHeight: height,
+                videoWidth: width,
+              });
+            }
+          }}
+          canvasHeight={this.state.videoHeight || 400}
+          canvasWidth={this.state.videoWidth || 400}
+        />
+        <button onClick={() => {
+          navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+            this.setState({ stream });
+          });
+        }}>Get camera video stream</button>
+        <button onClick={() => {
+          const snapshot = this.streamCanvas.snapshot();
+          console.log(snapshot);
+        }}>take a snapshot</button>
+
+
         <h2>Video player + snapshot</h2>
         <p>
           You can play video and draw on the top of it.
@@ -73,9 +104,21 @@ class Demo extends Component {
           videoSrc="http://upload.wikimedia.org/wikipedia/commons/7/79/Big_Buck_Bunny_small.ogv"
           onloaddata={() => {
             this.setState({ playbutton: true })
+            if (this.videoCanvas.video) {
+              let width = this.videoCanvas.video.videoWidth;
+              let height = this.videoCanvas.video.videoHeight;
+              if (width < 400 && height < 400) {
+                width = width * 2;
+                height = height * 2;
+              }
+              this.setState({
+                videoHeight: height,
+                videoWidth: width,
+              });
+            }
           }}
-          canvasHeight={268}
-          canvasWidth={480}
+          canvasHeight={this.state.videoHeight || 400}
+          canvasWidth={this.state.videoWidth || 400}
         />
         {this.state.playbutton && (
           <button onClick={() => { this.videoCanvas.playVideo(); }}>play video</button>
