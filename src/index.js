@@ -37,9 +37,9 @@ const canvasTypes = [
     zIndex: 10
   },
   {
-    name: "snapshot",
-    zIndex: 9
-  }
+    name: "snapshot", // NOTE: video will be 9
+    zIndex: 8
+  },
 ];
 
 const dimensionsPropTypes = PropTypes.oneOfType([
@@ -64,7 +64,11 @@ export default class extends PureComponent {
     imgSrc: PropTypes.string,
     saveData: PropTypes.string,
     immediateLoading: PropTypes.bool,
-    hideInterface: PropTypes.bool
+    hideInterface: PropTypes.bool,
+    videoSrc: PropTypes.string,
+    videoStream: PropTypes.object,
+    videoFps: PropTypes.number,
+    videoProps: PropTypes.object,
   };
 
   static defaultProps = {
@@ -83,7 +87,13 @@ export default class extends PureComponent {
     imgSrc: "",
     saveData: "",
     immediateLoading: false,
-    hideInterface: false
+    hideInterface: false,
+    videoFps: 30,
+    videoProps: {
+      playsInline: true,
+      autoPlay: true,
+      controls: false,
+    },
   };
 
   constructor(props) {
@@ -101,6 +111,8 @@ export default class extends PureComponent {
     this.valuesChanged = true;
     this.isDrawing = false;
     this.isPressing = false;
+
+    this.video = null;
   }
 
   componentDidMount() {
@@ -182,6 +194,10 @@ export default class extends PureComponent {
 
     this.image.src = this.props.imgSrc;
   };
+
+  playVideo = () => {
+    this.video.play();
+  }
 
   undo = () => {
     const lines = this.lines.slice(0, -1);
@@ -330,6 +346,9 @@ export default class extends PureComponent {
       this.setCanvasSize(this.canvas.temp, width, height);
       this.setCanvasSize(this.canvas.grid, width, height);
       this.setCanvasSize(this.canvas.snapshot, width, height);
+      if (this.video) {
+        this.setCanvasSize(this.video, width, height);
+      }
 
       this.drawGrid(this.ctx.grid);
       this.drawImage();
@@ -567,11 +586,23 @@ export default class extends PureComponent {
 
   snapshot = (includeImage = true, quality = 1) => {
     if (includeImage) {
+      if (this.video) {
+        // take video snapshot into background
+        // NOTE: video will be stretched if it's smaller than canvas
+        const width = this.canvas.grid.width;
+        const height = this.canvas.grid.height;
+
+        // copy video to snapshot canvas
+        this.ctx.snapshot.drawImage(this.video, 0, 0, width, height);
+        this.ctx.snapshot.drawImage(this.canvas.grid, 0, 0, width, height);
+        this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, width, height);
+        this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
+      }
       // take a snapshot with image
       return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
     }
     return this.canvas.drawing.toDataURL("image/jpeg", quality);
-  }
+  };
 
   render() {
     return (
@@ -591,6 +622,25 @@ export default class extends PureComponent {
           }
         }}
       >
+        {(this.props.videoSrc || this.props.videoStream) && (
+          <video
+            ref={(video) => this.video = video}
+            srcobject={this.props.videoStream}
+            style={{ ...canvasStyle, backgroundColor: '#fff', zIndex: 9 }}
+            onLoadedData={() => {
+              console.log("loaded canvas video data");
+              if (this.props.onloaddata) {
+                this.props.onloaddata();
+              }
+              this.video.play();
+            }}
+            rel="noopener noreferrer"
+            crossOrigin="Anonymous"
+            {...this.props.videoProps}
+          >
+            <source rel="noopener noreferrer" src={this.props.videoSrc} crossOrigin="Anonymous" />
+          </video>
+        )}
         {canvasTypes.map(({ name, zIndex }) => {
           const isInterface = name === "interface";
           return (
