@@ -59,16 +59,52 @@ class Demo extends Component {
           />
         </div>
         <CanvasDraw brushColor={this.state.color} />
+
+        <h2>Video player + snapshot</h2>
+        <p>
+          You can play video and draw on the top of it.
+          play button will show up as it needs user's interaction to play
+        </p>
+        <p>Base64 image will come in console when take a snapshot</p>
+        <p>Please note that video snapshot will be stretched to canvas if the video size is smaller than canvas</p>
+        <CanvasDraw
+          ref={canvasDraw => (this.videoCanvas = canvasDraw)}
+          brushColor="red"
+          videoSrc="http://upload.wikimedia.org/wikipedia/commons/7/79/Big_Buck_Bunny_small.ogv"
+          onloaddata={() => {
+            this.setState({ playbutton: true })
+          }}
+          canvasHeight={268}
+          canvasWidth={480}
+        />
+        {this.state.playbutton && (
+          <button onClick={() => { this.videoCanvas.playVideo(); }}>play video</button>
+        )}
+        <button onClick={() => {
+          const snapshot = this.videoCanvas.snapshot();
+          console.log(snapshot);
+        }}>take a snapshot</button>
+
+
         <h2>Background Image</h2>
         <p>You can also set the `imgSrc` prop to draw on a background-image.</p>
         <p>
           It will automatically resize to fit the canvas and centered vertically
           & horizontally.
         </p>
+        <p>Base64 image will come in console when take a snapshot</p>
         <CanvasDraw
+          ref={canvasDraw => (this.imageCanvas = canvasDraw)}
           brushColor="rgba(155,12,60,0.3)"
           imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
         />
+        <button onClick={() => {
+          const snapshot = this.imageCanvas.snapshot();
+          console.log(snapshot);
+        }}>take a snapshot</button>
+
+
+
         <h2>Hide UI</h2>
         <p>To hide the UI elements, set the `hideInterface` prop. You can also hide the grid with the `hideGrid` prop.</p>
         <CanvasDraw hideInterface hideGrid />
