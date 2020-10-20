@@ -132,6 +132,7 @@ export default class extends PureComponent {
     this.canvasObserver.observe(this.canvasContainer);
 
     this.drawImage();
+    this.drawVideo();
     this.loop();
 
     window.setTimeout(() => {
@@ -171,6 +172,10 @@ export default class extends PureComponent {
       // Signal this.loop function that values changed
       this.valuesChanged = true;
     }
+
+    if (!prevProps.videoStream && this.props.videoStream) {
+      this.drawVideo();
+    }
   }
 
   componentWillUnmount = () => {
@@ -194,6 +199,14 @@ export default class extends PureComponent {
 
     this.image.src = this.props.imgSrc;
   };
+
+  drawVideo = () => {
+    if (this.video && this.props.videoStream) {
+      if (this.video.srcObject !== this.props.videoStream) {
+        this.video.srcObject = this.props.videoStream;
+      }
+    }
+  }
 
   playVideo = () => {
     this.video.play();
@@ -625,7 +638,6 @@ export default class extends PureComponent {
         {(this.props.videoSrc || this.props.videoStream) && (
           <video
             ref={(video) => this.video = video}
-            srcobject={this.props.videoStream}
             style={{ ...canvasStyle, backgroundColor: '#fff', zIndex: 9 }}
             onLoadedData={() => {
               console.log("loaded canvas video data");
