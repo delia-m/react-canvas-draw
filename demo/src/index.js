@@ -174,6 +174,7 @@ class Demo extends Component {
           hideInterface={this.state.mode === 'text'}
           mode={this.state.mode}
           imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
+          onChange={() => console.log("onChange")} 
         />
         <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>
         <button onClick={() => this.setState({ mode: 'brush' })}>blush mode</button>

@@ -434,6 +434,7 @@ export default class extends PureComponent {
         
     if (this.props.mode === 'text') {
       this.setState({ selectedText: -1 });
+      this.triggerOnChange();
     }
 
     if (!_.isEmpty(pointsToSend)) {
@@ -842,6 +843,7 @@ export default class extends PureComponent {
     this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
 
     this.lastChange = { status: 'new', text: _.last(this.texts) };
+    this.triggerOnChange();
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   }
 
