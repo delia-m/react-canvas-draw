@@ -918,7 +918,8 @@ export default class extends PureComponent {
               ...this.props.inputProps,
               position: 'absolute',
               zIndex: 20, // should be on the top of all canvas
-              transform: `translateX(${this.state.clickedPotision.x}px) translateY(${this.state.clickedPotision.y}px)`
+              left: this.state.clickedPotision.x,
+              top: this.state.clickedPotision.y,
             }}
             value={this.state.text}
             onChange={(event) => {
