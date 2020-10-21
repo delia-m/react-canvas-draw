@@ -234,7 +234,7 @@ class Demo extends Component {
             <label>Width:</label>
             <input
               type="number"
-              value={this.state.width}
+              value={this.state.width + 100}
               onChange={e =>
                 this.setState({ width: parseInt(e.target.value, 10) })
               }
@@ -244,7 +244,7 @@ class Demo extends Component {
             <label>Height:</label>
             <input
               type="number"
-              value={this.state.height}
+              value={this.state.height + 100}
               onChange={e =>
                 this.setState({ height: parseInt(e.target.value, 10) })
               }
@@ -271,23 +271,28 @@ class Demo extends Component {
             />
           </div>
         </div>
-        <div style={{ width: 810, display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ width: 910, display: 'flex', justifyContent: 'space-between' }}>
           <CanvasDraw
             ref={canvasDraw => (this.saveableCanvas = canvasDraw)}
             brushColor={this.state.color}
             brushRadius={this.state.brushRadius}
             lazyRadius={this.state.lazyRadius}
-            canvasWidth={this.state.width}
-            canvasHeight={this.state.height}
+            canvasWidth={this.state.width + 100}
+            canvasHeight={this.state.height + 100}
             mode={this.state.mode}
             disabled={this.state.mode === 'text'}
             hideInterface={this.state.mode === 'text'}
             onSyncDataChange={(lastChange) => {
               this.syncCanvas.syncData(lastChange);
             }}
+            inputProps={{
+              top: 100,
+            }}
           />
           <CanvasDraw
             hideGrid
+            canvasWidth={this.state.width - 100}
+            canvasHeight={this.state.height - 100}
             brushColor={this.state.color}
             ref={canvasDraw => (this.syncCanvas = canvasDraw)}
             onSyncDataChange={(lastChange) => {

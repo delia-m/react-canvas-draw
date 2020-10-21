@@ -439,6 +439,8 @@ export default class extends PureComponent {
 
     if (!_.isEmpty(pointsToSend)) {
       this.props.onSyncDataChange && this.props.onSyncDataChange({
+        width: this.props.canvasWidth,
+        height: this.props.canvasHeight,
         isDrawing: false,
         points: pointsToSend,
         brushColor: this.props.brushColor,
@@ -531,10 +533,12 @@ export default class extends PureComponent {
 
     if (this.isDrawing) {
       this.lastChange = {
+        width: this.props.canvasWidth,
+        height: this.props.canvasHeight,
         isDrawing: this.isDrawing,
         points: this.points,
         brushColor: this.props.brushColor,
-        brushRadius: this.props.brushRadius
+        brushRadius: this.props.brushRadius,
       };
       this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
     }
@@ -593,15 +597,36 @@ export default class extends PureComponent {
       return;
     }
 
+    const { width, height } = lastChange;
+    // we need to rescale the lines based on saved & current dimensions
+    const scaleX = this.props.canvasWidth / width;
+    const scaleY = this.props.canvasHeight / height;
+    const scaleAvg = (scaleX + scaleY) / 2;
+
     if (_.has(lastChange, 'text')) {
+      const text = {
+        ...lastChange.text,
+        x: lastChange.text.x * scaleX,
+        y: lastChange.text.y * scaleY
+      };
+
       if (lastChange.status === 'new') {
-        this.texts.push(lastChange.text);
+        this.texts.push(text);
       } else if (lastChange.status === 'move') {
-        this.texts[lastChange.index] = lastChange.text;
+        this.texts[lastChange.index] = text;
       }
+
       this.drawText();
+
     } else if (_.has(lastChange, 'points')) {
-      const { points, brushColor, brushRadius } = lastChange;
+      const { brushColor } = lastChange;
+      const brushRadius = _.isNaN(lastChange.brushRadius * scaleAvg) ? lastChange.brushRadius : lastChange.brushRadius * scaleAvg;
+      const points = _.map(lastChange.points, p => ({
+        ...p,
+        x: p.x * scaleX,
+        y: p.y * scaleY
+      }));
+
       if (!_.isEmpty(points)) {
         this.points = points;
         // Draw current points
@@ -803,7 +828,13 @@ export default class extends PureComponent {
     text.y += dy;
     this.drawText();
 
-    this.lastChange = { status: 'move', index: this.state.selectedText, text };
+    this.lastChange = {
+      width: this.props.canvasWidth,
+      height: this.props.canvasHeight,
+      status: 'move',
+      index: this.state.selectedText,
+      text,
+    };
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   };
 
@@ -842,7 +873,11 @@ export default class extends PureComponent {
     }
     this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
 
-    this.lastChange = { status: 'new', text: _.last(this.texts) };
+    this.lastChange = {
+      width: this.props.canvasWidth,
+      height: this.props.canvasHeight,
+      status: 'new', text: _.last(this.texts)
+    };
     this.triggerOnChange();
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   }
