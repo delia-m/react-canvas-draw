@@ -167,7 +167,7 @@ export default class extends PureComponent {
       );
       this.mouseHasMoved = true;
       this.valuesChanged = true;
-      this.clear();
+      this.clear(false);
 
       // Load saveData from prop if it exists
       if (this.props.saveData) {
@@ -287,7 +287,7 @@ export default class extends PureComponent {
       throw new Error("saveData.lines needs to be an array!");
     }
 
-    this.clear();
+    this.clear(false);
 
     if (
       width === this.props.canvasWidth &&
