@@ -287,6 +287,8 @@ class Demo extends Component {
             }}
             inputProps={{
               top: 100,
+              fontFamily: 'sans-serif',
+              fontSize: 50,
             }}
           />
           <CanvasDraw
