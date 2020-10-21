@@ -75,7 +75,7 @@ export default class extends PureComponent {
     videoFps: PropTypes.number,
     videoProps: PropTypes.object,
     inputProps: PropTypes.object,
-    onLastChange: PropTypes.func,
+    onSyncDataChange: PropTypes.func,
   };
 
   static defaultProps = {
@@ -101,6 +101,8 @@ export default class extends PureComponent {
       autoPlay: true,
       controls: false,
     },
+    inputProps: {},
+    onSyncDataChange: null,
   };
 
   constructor(props) {
@@ -121,6 +123,7 @@ export default class extends PureComponent {
     this.isPressing = false;
 
     this.video = null;
+    this.lastChange = null;
     this.state = {
       textinput: true,
       text: '',
@@ -227,10 +230,14 @@ export default class extends PureComponent {
     this.video.play();
   }
 
-  undo = () => {
-    if (this.props.mode === 'text') {
+  undo = (mode = this.props.mode, triggerEvent = true) => {
+    if (mode === 'text') {
       this.texts.pop();
       this.drawText();
+      if (triggerEvent) {
+        this.lastChange = { status: 'undo', mode };
+        this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+      }
       return;
     }
 
@@ -252,7 +259,11 @@ export default class extends PureComponent {
     );
 
     this.simulateDrawingLines({ lines, immediate: true });
-    this.triggerOnChange();
+    if (triggerEvent) {
+      this.triggerOnChange();
+      this.lastChange = { status: 'undo', mode };
+      this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+    }
   };
 
   getSaveData = () => {
@@ -399,22 +410,7 @@ export default class extends PureComponent {
 
   handleDrawMove = e => {
     if (this.props.mode === 'text') {
-      if (this.state.selectedText < 0) {
-        return;
-      }
-
-      e.preventDefault();
-      const { x, y } = this.getPointerPos(e);
-
-      // Put your mousemove stuff here
-      var dx = x - this.state.startX;
-      var dy = y - this.state.startY;
-      this.setState({ startX: x, startY: y });
-
-      var text = this.texts[this.state.selectedText];
-      text.x += dx;
-      text.y += dy;
-      this.drawText();
+      this.handleTextMode(e);
     }
 
     e.preventDefault();
@@ -428,14 +424,25 @@ export default class extends PureComponent {
 
     // Draw to this end pos
     this.handleDrawMove(e);
-
+    
     // Stop drawing & save the drawn line
     this.isDrawing = false;
     this.isPressing = false;
-    this.saveLine();
 
+    const pointsToSend = [...this.points];
+    this.saveLine();
+        
     if (this.props.mode === 'text') {
       this.setState({ selectedText: -1 });
+    }
+
+    if (!_.isEmpty(pointsToSend)) {
+      this.props.onSyncDataChange && this.props.onSyncDataChange({
+        isDrawing: false,
+        points: pointsToSend,
+        brushColor: this.props.brushColor,
+        brushRadius: this.props.brushRadius,
+      });
     }
   };
 
@@ -520,6 +527,16 @@ export default class extends PureComponent {
     }
 
     this.mouseHasMoved = true;
+
+    if (this.isDrawing) {
+      this.lastChange = {
+        isDrawing: this.isDrawing,
+        points: this.points,
+        brushColor: this.props.brushColor,
+        brushRadius: this.props.brushRadius
+      };
+      this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+    }
   };
 
   drawPoints = ({ points, brushColor, brushRadius }) => {
@@ -556,7 +573,49 @@ export default class extends PureComponent {
     this.ctx.temp.stroke();
   };
 
-  saveLine = ({ brushColor, brushRadius } = {}) => {
+
+  getLastChange = () => {
+    return this.lastChange;
+  };
+
+  syncData = (lastChange) => {
+    if (_.isEmpty(lastChange)) {
+      return;
+    }
+
+    if (lastChange.status === 'clear') {
+      return this.clear(false);
+    }
+
+    if (lastChange.status === 'undo') {
+      this.undo(lastChange.mode, false);
+      return;
+    }
+
+    if (_.has(lastChange, 'text')) {
+      if (lastChange.status === 'new') {
+        this.texts.push(lastChange.text);
+      } else if (lastChange.status === 'move') {
+        this.texts[lastChange.index] = lastChange.text;
+      }
+      this.drawText();
+    } else if (_.has(lastChange, 'points')) {
+      const { points, brushColor, brushRadius } = lastChange;
+      if (!_.isEmpty(points)) {
+        this.points = points;
+        // Draw current points
+        this.drawPoints({ points, brushColor, brushRadius });
+      }
+
+      if (lastChange.isDrawing === false) {
+        this.isDrawing = false;
+        this.isPressing = false;
+        this.saveLine({ brushColor, brushRadius }, false);
+      }
+    }
+  };
+
+  saveLine = ({ brushColor, brushRadius } = {}, triggerEvent = true) => {
     if (this.points.length < 2) return;
 
     // Save as new line
@@ -568,24 +627,26 @@ export default class extends PureComponent {
 
     // Reset points array
     this.points.length = 0;
-
+    
     const width = this.canvas.temp.width;
     const height = this.canvas.temp.height;
-
+    
     // Copy the line to the drawing canvas
     this.ctx.drawing.drawImage(this.canvas.temp, 0, 0, width, height);
-
+    
     // Clear the temporary line-drawing canvas
     this.ctx.temp.clearRect(0, 0, width, height);
-
-    this.triggerOnChange();
+    
+    if (triggerEvent) {
+      this.triggerOnChange();
+    }
   };
 
   triggerOnChange = () => {
     this.props.onChange && this.props.onChange(this);
   };
 
-  clear = () => {
+  clear = (triggerEvent = true) => {
     this.texts = [];
     this.lines = [];
     this.valuesChanged = true;
@@ -607,6 +668,9 @@ export default class extends PureComponent {
       this.canvas.text.width,
       this.canvas.text.height
     );
+    if (triggerEvent) {
+      this.props.onSyncDataChange && this.props.onSyncDataChange({ status: 'clear' });
+    }
   };
 
   loop = ({ once = false } = {}) => {
@@ -720,6 +784,28 @@ export default class extends PureComponent {
     return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
   };
 
+  handleTextMode = (e) => {
+    if (this.state.selectedText < 0) {
+      return;
+    }
+
+    e.preventDefault();
+    const { x, y } = this.getPointerPos(e);
+
+    // Put your mousemove stuff here
+    var dx = x - this.state.startX;
+    var dy = y - this.state.startY;
+    this.setState({ startX: x, startY: y });
+
+    var text = this.texts[this.state.selectedText];
+    text.x += dx;
+    text.y += dy;
+    this.drawText();
+
+    this.lastChange = { status: 'move', index: this.state.selectedText, text };
+    this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+  };
+
   drawText = (canvas = 'text') => {
     this.ctx[canvas].font = "15px verdana";
     this.ctx[canvas].clearRect(0, 0, this.canvas[canvas].width, this.canvas[canvas].height);
@@ -746,7 +832,7 @@ export default class extends PureComponent {
     // put this new text in the texts array
     this.texts.push(text);
     this.drawText();
-
+    
     let nextInputX = text.x;
     let nextInputY = Math.min(text.y + 16, this.canvas.temp.height - 30);
     if (text.y + 16 > this.canvas.temp.height - 30) {
@@ -754,6 +840,9 @@ export default class extends PureComponent {
       nextInputY = 10;
     }
     this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
+
+    this.lastChange = { status: 'new', text: _.last(this.texts) };
+    this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   }
 
   render() {

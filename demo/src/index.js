@@ -195,6 +195,7 @@ class Demo extends Component {
         <p>To hide the UI elements, set the `hideInterface` prop. You can also hide the grid with the `hideGrid` prop.</p>
         <CanvasDraw hideInterface hideGrid />
         <h2>Save & Load</h2>
+        <p>Added Sync canvas live with right canvas</p>
         <p>
           This part got me most excited. Very easy to use saving and loading of
           drawings. It even comes with a customizable loading speed to control
@@ -269,14 +270,34 @@ class Demo extends Component {
             />
           </div>
         </div>
-        <CanvasDraw
-          ref={canvasDraw => (this.saveableCanvas = canvasDraw)}
-          brushColor={this.state.color}
-          brushRadius={this.state.brushRadius}
-          lazyRadius={this.state.lazyRadius}
-          canvasWidth={this.state.width}
-          canvasHeight={this.state.height}
-        />
+        <div style={{ width: 810, display: 'flex', justifyContent: 'space-between' }}>
+          <CanvasDraw
+            ref={canvasDraw => (this.saveableCanvas = canvasDraw)}
+            brushColor={this.state.color}
+            brushRadius={this.state.brushRadius}
+            lazyRadius={this.state.lazyRadius}
+            canvasWidth={this.state.width}
+            canvasHeight={this.state.height}
+            mode={this.state.mode}
+            disabled={this.state.mode === 'text'}
+            hideInterface={this.state.mode === 'text'}
+            onSyncDataChange={(lastChange) => {
+              this.syncCanvas.syncData(lastChange);
+            }}
+          />
+          <CanvasDraw
+            hideGrid
+            brushColor={this.state.color}
+            ref={canvasDraw => (this.syncCanvas = canvasDraw)}
+            onSyncDataChange={(lastChange) => {
+              this.saveableCanvas.syncData(lastChange);
+            }}
+          />
+        </div>
+        <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>
+        <button onClick={() => this.setState({ mode: 'brush' })}>blush mode</button>
+        <button onClick={() => this.setState({ mode: 'text' })}>text mode</button>
+        <button onClick={() => console.log(this.saveableCanvas.getLastChange())}>Get last change</button>
         <p>
           The following is a disabled canvas with a hidden grid that we use to
           load & show your saved drawing.
