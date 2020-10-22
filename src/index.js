@@ -312,7 +312,6 @@ export default class extends PureComponent {
       width === this.props.canvasWidth &&
       height === this.props.canvasHeight
     ) {
-      this.texts = texts;
       this.simulateDrawingLines({
         lines,
         immediate
@@ -343,6 +342,8 @@ export default class extends PureComponent {
         immediate
       });
     }
+
+    this.texts = texts;
     this.drawText();
   };
 
