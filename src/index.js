@@ -72,7 +72,6 @@ export default class extends PureComponent {
     hideInterface: PropTypes.bool,
     videoSrc: PropTypes.string,
     videoStream: PropTypes.object,
-    videoFps: PropTypes.number,
     videoProps: PropTypes.object,
     inputProps: PropTypes.object,
     onSyncDataChange: PropTypes.func,
@@ -95,13 +94,17 @@ export default class extends PureComponent {
     saveData: "",
     immediateLoading: false,
     hideInterface: false,
-    videoFps: 30,
     videoProps: {
       playsInline: true,
       autoPlay: true,
       controls: false,
     },
-    inputProps: {},
+    inputProps: {
+      top: 50,
+      left: 10,
+      fontSize: 16,
+      fontFamily: 'verdana',
+    },
     onSyncDataChange: null,
   };
 
@@ -240,11 +243,11 @@ export default class extends PureComponent {
         this.video.srcObject = this.props.videoStream;
       }
     }
-  }
+  };
 
   playVideo = () => {
     this.video.play();
-  }
+  };
 
   undo = (mode = this.props.mode, triggerEvent = true) => {
     if (mode === 'text') {
@@ -609,8 +612,7 @@ export default class extends PureComponent {
     }
 
     if (lastChange.status === 'undo') {
-      this.undo(lastChange.mode, false);
-      return;
+      return this.undo(lastChange.mode, false);
     }
 
     const { width, height } = lastChange;
@@ -632,9 +634,7 @@ export default class extends PureComponent {
         this.texts[lastChange.index] = text;
       }
       
-      const { fontFamily, ratio } = lastChange;
-      const font = this.getFont(fontFamily, ratio);
-      this.drawText('text', font);
+      this.drawText();
 
     } else if (_.has(lastChange, 'points')) {
       const { brushColor } = lastChange;
@@ -849,8 +849,6 @@ export default class extends PureComponent {
     this.lastChange = {
       width: this.props.canvasWidth,
       height: this.props.canvasHeight,
-      fontFamily: this.state.fontFamily,
-      ratio: this.getFontRatio(),
       status: 'move',
       index: this.state.selectedText,
       text,
@@ -858,26 +856,26 @@ export default class extends PureComponent {
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   };
 
-  drawText = (canvas = 'text', font) => {
-    this.ctx[canvas].font = font ? font : this.getFont();
+  drawText = (canvas = 'text') => {
     this.ctx[canvas].clearRect(0, 0, this.canvas[canvas].width, this.canvas[canvas].height);
     for (var i = 0; i < this.texts.length; i++) {
       var text = this.texts[i];
+      this.ctx[canvas].font = this.getFont(text.fontFamily, text.ratio);
       this.ctx[canvas].fillText(text.text, text.x, text.y);
     }
-  }
+  };
 
   getFont(fontFamily = this.state.fontFamily, ratio) {
     if (ratio) {
       // scale font based on ratio
-      var size = this.props.canvasWidth * ratio;   // get font size based on current width
+      var size = this.props.canvasWidth * ratio; // get font size based on current width
       return (size | 0) + 'px ' + fontFamily; // set font
     }
     return `${this.state.fontSize}px ${this.state.fontFamily}`;
   };
 
   getFontRatio() {
-    var ratio = this.state.fontSize / this.props.canvasWidth;   // calc ratio
+    var ratio = this.state.fontSize / this.props.canvasWidth; // calc ratio
     return ratio;
   };
 
@@ -889,9 +887,12 @@ export default class extends PureComponent {
     const text = {
       text: this.state.text,
       x: this.state.clickedPotision.x,
-      y: this.state.clickedPotision.y + 15
+      y: this.state.clickedPotision.y + this.state.textHeight,
+      fontFamily: this.state.fontFamily,
+      ratio: this.getFontRatio(),
     };
-    this.ctx.temp.font = this.getFont();
+
+    this.ctx.temp.font = this.getFont(); // to get text width
     text.width = this.ctx.temp.measureText(text.text).width;
     text.height = this.state.textHeight;
 
@@ -903,23 +904,22 @@ export default class extends PureComponent {
     const offsetX = 50;
 
     let nextInputX = text.x;
-    let nextInputY = Math.min(text.y + this.state.textHeight, this.canvas.temp.height - 30);
+    let nextInputY = Math.min(text.y + this.state.textHeight, this.canvas.temp.height - bottomOffset);
     if (text.y + this.state.textHeight > this.canvas.temp.height - bottomOffset) {
       nextInputX = nextInputX + offsetX;
-      nextInputY = 10;
+      nextInputY = _.get(this.props, 'inputProps.top', 50);
     }
     this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
 
     this.lastChange = {
       width: this.props.canvasWidth,
       height: this.props.canvasHeight,
-      fontFamily: this.state.fontFamily,
-      ratio: this.getFontRatio(),
-      status: 'new', text: _.last(this.texts)
+      status: 'new',
+      text: _.last(this.texts)
     };
     this.triggerOnChange();
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
-  }
+  };
 
   render() {
     return (
