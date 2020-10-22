@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { render } from "react-dom";
+import _ from 'lodash';
 
 import CanvasDraw from "../../src";
 import classNames from "./index.css";
@@ -60,11 +61,14 @@ class Demo extends Component {
         </div>
         <CanvasDraw brushColor={this.state.color} />
 
-        <h2>Get local video stream from camera</h2>
+        <h2>Get local video stream from camera + snapshot</h2>
         <p>Base64 image will come in console when take a snapshot</p>
+        <p>Resize canvas to video size</p>
+        <p>canvas.snapshot() returns promise</p>
         <CanvasDraw
           ref={canvasDraw => (this.streamCanvas = canvasDraw)}
           brushColor="red"
+          key={_.get(this.state.stream, 'id')}
           videoStream={this.state.stream}
           onloaddata={() => {
             this.setState({ playbutton: true })
@@ -86,12 +90,15 @@ class Demo extends Component {
           });
         }}>Get camera video stream</button>
         <button onClick={() => {
-          const snapshot = this.streamCanvas.snapshot();
+          const includeBackground = true;
+          const quality = 1;
+          const bgOriginalSize = false;
+          const snapshot = this.streamCanvas.snapshot(includeBackground, quality, bgOriginalSize);
           console.log(snapshot);
           this.setState({ streamCanvasSnapshot: snapshot });
         }}>take a snapshot</button>
         <br />
-        <img src={this.state.streamCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
+        <img src={this.state.streamCanvasSnapshot} />
 
 
         <h2>Video player + snapshot</h2>
@@ -100,7 +107,7 @@ class Demo extends Component {
           play button will show up as it needs user's interaction to play
         </p>
         <p>Base64 image will come in console when take a snapshot</p>
-        <p>Please note that video snapshot will be stretched to canvas if the video size is smaller than canvas</p>
+        <p>Fixed canvas size (different to video size)</p>
         <CanvasDraw
           ref={canvasDraw => (this.videoCanvas = canvasDraw)}
           brushColor="red"
@@ -115,13 +122,13 @@ class Demo extends Component {
                 height = height * 2;
               }
               this.setState({
-                videoHeight: height,
-                videoWidth: width,
+                playerHeight: height,
+                playerWidth: width,
               });
             }
           }}
-          canvasHeight={this.state.videoHeight || 400}
-          canvasWidth={this.state.videoWidth || 400}
+          canvasHeight={this.state.playerHeight || 400}
+          canvasWidth={this.state.playerWidth || 400}
         />
         {this.state.playbutton && (
           <button onClick={() => { this.videoCanvas.playVideo(); }}>play video</button>
@@ -130,9 +137,14 @@ class Demo extends Component {
           const snapshot = this.videoCanvas.snapshot();
           console.log(snapshot);
           this.setState({ videoCanvasSnapshot: snapshot });
-        }}>take a snapshot</button>
+        }}>take a snapshot (canvas size)</button>
+        <button onClick={() => {
+          const snapshot = this.videoCanvas.snapshot(true, 1, true);
+          console.log(snapshot);
+          this.setState({ videoCanvasSnapshot: snapshot });
+        }}>take a snapshot (original video size)</button>
         <br />
-        <img src={this.state.videoCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
+        <img src={this.state.videoCanvasSnapshot} />
 
 
         <h2>Background Image</h2>
@@ -157,8 +169,13 @@ class Demo extends Component {
           console.log(snapshot);
           this.setState({ imagesCanvasSnapshot: snapshot });
         }}>take a snapshot without image</button>
+        <button onClick={() => {
+          const snapshot = this.imageCanvas.snapshot(true, 1, true);
+          console.log(snapshot);
+          this.setState({ imagesCanvasSnapshot: snapshot });
+        }}>take a snapshot (original image size)</button>
         <br />
-        <img src={this.state.imagesCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
+        <img src={this.state.imagesCanvasSnapshot} />
 
 
 
@@ -185,9 +202,15 @@ class Demo extends Component {
           const snapshot = this.textCanvas.snapshot();
           console.log(snapshot);
           this.setState({ textCanvasSnapshot: snapshot });
-        }}>take a snapshot</button>
+        }}>take a snapshot (canvas size)</button>
+        <button onClick={() => {
+          const snapshot = this.textCanvas.snapshot(true, 1, true);
+          console.log(snapshot);
+          this.setState({ textCanvasSnapshot: snapshot });
+        }}>take a snapshot (original image size)</button>
+
         <br />
-        <img src={this.state.textCanvasSnapshot} style={{ width: 400, heigth: 400 }} />
+        <img src={this.state.textCanvasSnapshot} />
 
 
 

@@ -231,6 +231,7 @@ export default class extends PureComponent {
 
     // Draw the image once loaded
     this.image.onload = () => {
+      this.imageSize = { width: this.image.width, height: this.image.height };
       drawImage({ ctx: this.ctx.grid, img: this.image });
     }
 
@@ -805,26 +806,43 @@ export default class extends PureComponent {
     ctx.fill();
   };
 
-  snapshot = (includeImage = true, quality = 1) => {
-    const width = this.canvas.grid.width;
-    const height = this.canvas.grid.height;
+  snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false) => {
+    console.log({ includeBackground, quality, bgOriginalSize });
+    // default target = drawing canvas
+    let targetWidth = this.canvas.drawing.width;
+    let targetHeight = this.canvas.drawing.height
+
+    if (includeBackground && bgOriginalSize) {
+      if (this.image && this.imageSize) {
+        const { width, height } = this.imageSize;
+        targetWidth = width;
+        targetHeight = height;
+      } else if (this.video) {
+        targetWidth = this.video.videoWidth;
+        targetHeight = this.video.videoHeight;
+      }
+    }
+
+    // set snapshot canvas size to target size
+    this.setCanvasSize(this.canvas.snapshot, targetWidth, targetHeight);
 
     this.ctx.snapshot.fillStyle = "#fff";
-    this.ctx.snapshot.fillRect(0, 0, width, height);
+    this.ctx.snapshot.fillRect(0, 0, targetWidth, targetHeight);
 
-    if (includeImage) {
+    if (includeBackground) {
       if (this.video) {
         // take video snapshot into background
         // NOTE: video will be stretched if it's smaller than canvas
         // copy video to snapshot canvas
-        this.ctx.snapshot.drawImage(this.video, 0, 0, width, height);
+        this.ctx.snapshot.drawImage(this.video, 0, 0, targetWidth, targetHeight);
       } else if (this.image) {
         drawImage({ ctx: this.ctx.snapshot, img: this.image });
       }
     }
-    this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, width, height);
-    this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, width, height);
-    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, width, height);
+
+    this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, targetWidth, targetHeight);
+    this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, targetWidth, targetHeight);
+    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, targetWidth, targetHeight);
     // take a snapshot with image
     return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
   };
@@ -961,6 +979,7 @@ export default class extends PureComponent {
         )}
         {canvasTypes.map(({ name, zIndex }) => {
           const isInterface = name === "interface";
+          const hiddenStyle = name === "snapshot" ? { display: 'none' } : {};
           return (
             <canvas
               key={name}
@@ -970,7 +989,7 @@ export default class extends PureComponent {
                   this.ctx[name] = canvas.getContext("2d");
                 }
               }}
-              style={{ ...canvasStyle, zIndex }}
+              style={{ ...canvasStyle, ...hiddenStyle, zIndex }}
               onMouseDown={isInterface ? this.handleDrawStart : undefined}
               onMouseMove={isInterface ? this.handleDrawMove : undefined}
               onMouseUp={isInterface ? this.handleDrawEnd : undefined}
