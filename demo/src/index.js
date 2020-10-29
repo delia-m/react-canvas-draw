@@ -298,6 +298,7 @@ class Demo extends Component {
           <CanvasDraw
             ref={canvasDraw => (this.saveableCanvas = canvasDraw)}
             brushColor={this.state.color}
+            textColor={this.state.color}
             brushRadius={this.state.brushRadius}
             lazyRadius={this.state.lazyRadius}
             canvasWidth={this.state.width + 100}

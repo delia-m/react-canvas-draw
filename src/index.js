@@ -73,6 +73,7 @@ export default class extends PureComponent {
     videoSrc: PropTypes.string,
     videoStream: PropTypes.object,
     videoProps: PropTypes.object,
+    textColor: PropTypes.string,
     inputProps: PropTypes.object,
     onSyncDataChange: PropTypes.func,
   };
@@ -99,6 +100,7 @@ export default class extends PureComponent {
       autoPlay: true,
       controls: false,
     },
+    textColor: "#000",
     inputProps: {
       top: 50,
       left: 10,
@@ -880,6 +882,7 @@ export default class extends PureComponent {
     for (var i = 0; i < this.texts.length; i++) {
       var text = this.texts[i];
       this.ctx[canvas].font = this.getFont(text.fontFamily, text.ratio);
+      this.ctx[canvas].fillStyle = text.fillStyle;
       this.ctx[canvas].fillText(text.text, text.x, text.y);
     }
   };
@@ -909,9 +912,10 @@ export default class extends PureComponent {
       y: this.state.clickedPotision.y + this.state.textHeight,
       fontFamily: this.state.fontFamily,
       ratio: this.getFontRatio(),
+      fillStyle: this.props.textColor,
     };
 
-    this.ctx.temp.font = this.getFont(); // to get text width
+    this.ctx.temp.font = this.getFont();
     text.width = this.ctx.temp.measureText(text.text).width;
     text.height = this.state.textHeight;
 
