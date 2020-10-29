@@ -319,13 +319,13 @@ export default class extends PureComponent {
         lines,
         immediate
       });
+      this.texts = texts;
     } else {
       // we need to rescale the lines based on saved & current dimensions
       const scaleX = this.props.canvasWidth / width;
       const scaleY = this.props.canvasHeight / height;
       const scaleAvg = (scaleX + scaleY) / 2;
-
-      if (!_.isEmpty(this.texts)) {
+      if (!_.isEmpty(texts)) {
         this.texts = _.map(texts, t => ({
           ...t,
           x: t.x * scaleX,
@@ -346,7 +346,6 @@ export default class extends PureComponent {
       });
     }
 
-    this.texts = texts;
     this.drawText();
   };
 
