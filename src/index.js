@@ -1019,6 +1019,7 @@ export default class extends PureComponent {
               zIndex: 20, // should be on the top of all canvas
               left: this.state.clickedPotision.x,
               top: this.state.clickedPotision.y,
+              color: this.props.textColor,
             }}
             value={this.state.text}
             onChange={(event) => {
