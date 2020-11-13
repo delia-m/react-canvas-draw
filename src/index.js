@@ -982,7 +982,7 @@ export default class extends PureComponent {
         )}
         {canvasTypes.map(({ name, zIndex }) => {
           const isInterface = name === "interface";
-          const hiddenStyle = name === "snapshot" ? { display: 'none' } : {};
+          const hiddenStyle = (name === "snapshot" || (isInterface && this.props.hideInterface)) ? { display: 'none' } : {};
           return (
             <canvas
               key={name}

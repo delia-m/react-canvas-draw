@@ -11,7 +11,8 @@ class Demo extends Component {
     width: 400,
     height: 400,
     brushRadius: 10,
-    lazyRadius: 12
+    lazyRadius: 12,
+    hideInterface: true,
   };
   componentDidMount() {
     // let's change the color randomly every 2 seconds. fun!
@@ -191,7 +192,7 @@ class Demo extends Component {
           hideInterface={this.state.mode === 'text'}
           mode={this.state.mode}
           imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
-          onChange={() => console.log("onChange")} 
+          onChange={() => console.log("onChange")}
         />
         <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>
         <button onClick={() => this.setState({ mode: 'brush' })}>blush mode</button>
@@ -217,7 +218,12 @@ class Demo extends Component {
 
         <h2>Hide UI</h2>
         <p>To hide the UI elements, set the `hideInterface` prop. You can also hide the grid with the `hideGrid` prop.</p>
-        <CanvasDraw hideInterface hideGrid />
+        <CanvasDraw hideInterface={this.state.hideInterface} hideGrid />
+        <button onClick={() => this.setState((prevState) => ({ hideInterface: !prevState.hideInterface }))}>toggle interface</button>
+
+        <br />
+
+
         <h2>Save & Load</h2>
         <p>Added Sync canvas live with right canvas</p>
         <p>
