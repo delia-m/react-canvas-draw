@@ -94,7 +94,7 @@ class Demo extends Component {
           const includeBackground = true;
           const quality = 1;
           const bgOriginalSize = false;
-          const snapshot = this.streamCanvas.snapshot(includeBackground, quality, bgOriginalSize);
+          const {snapshot} = this.streamCanvas.snapshot(includeBackground, quality, bgOriginalSize);
           console.log(snapshot);
           this.setState({ streamCanvasSnapshot: snapshot });
         }}>take a snapshot</button>
@@ -135,12 +135,12 @@ class Demo extends Component {
           <button onClick={() => { this.videoCanvas.playVideo(); }}>play video</button>
         )}
         <button onClick={() => {
-          const snapshot = this.videoCanvas.snapshot();
+          const {snapshot} = this.videoCanvas.snapshot();
           console.log(snapshot);
           this.setState({ videoCanvasSnapshot: snapshot });
         }}>take a snapshot (canvas size)</button>
         <button onClick={() => {
-          const snapshot = this.videoCanvas.snapshot(true, 1, true);
+          const {snapshot} = this.videoCanvas.snapshot(true, 1, true);
           console.log(snapshot);
           this.setState({ videoCanvasSnapshot: snapshot });
         }}>take a snapshot (original video size)</button>
@@ -161,17 +161,17 @@ class Demo extends Component {
           imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
         />
         <button onClick={() => {
-          const snapshot = this.imageCanvas.snapshot();
+          const {snapshot} = this.imageCanvas.snapshot();
           console.log(snapshot);
           this.setState({ imagesCanvasSnapshot: snapshot });
         }}>take a snapshot with image</button>
         <button onClick={() => {
-          const snapshot = this.imageCanvas.snapshot(false);
+          const {snapshot} = this.imageCanvas.snapshot(false);
           console.log(snapshot);
           this.setState({ imagesCanvasSnapshot: snapshot });
         }}>take a snapshot without image</button>
         <button onClick={() => {
-          const snapshot = this.imageCanvas.snapshot(true, 1, true);
+          const {snapshot} = this.imageCanvas.snapshot(true, 1, true);
           console.log(snapshot);
           this.setState({ imagesCanvasSnapshot: snapshot });
         }}>take a snapshot (original image size)</button>
@@ -200,12 +200,12 @@ class Demo extends Component {
         <button onClick={() => this.textCanvas.undo()}>Undo</button>
         <button onClick={() => this.textCanvas.clear()}>Claer</button>
         <button onClick={() => {
-          const snapshot = this.textCanvas.snapshot();
+          const {snapshot} = this.textCanvas.snapshot();
           console.log(snapshot);
           this.setState({ textCanvasSnapshot: snapshot });
         }}>take a snapshot (canvas size)</button>
         <button onClick={() => {
-          const snapshot = this.textCanvas.snapshot(true, 1, true);
+          const {snapshot} = this.textCanvas.snapshot(true, 1, true);
           console.log(snapshot);
           this.setState({ textCanvasSnapshot: snapshot });
         }}>take a snapshot (original image size)</button>

@@ -851,11 +851,8 @@ export default class extends PureComponent {
     this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, targetWidth, targetHeight);
     // take a snapshot with image
     returnValue.snapshot = this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
-    if (copyOriginal) {
-      return returnValue;
-    }
 
-    return returnValue.snapshot;
+    return returnValue;
   };
 
   handleTextMode = (e) => {
