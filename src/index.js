@@ -133,7 +133,7 @@ export default class extends PureComponent {
       // for text input
       textinput: true,
       text: '',
-      clickedPotision: { x: _.get(props, 'inputProps.left', 10), y: _.get(props, 'inputProps.top', 50) },
+      clickedPosition: { x: _.get(props, 'inputProps.left', 10), y: _.get(props, 'inputProps.top', 50) },
 
       // for canvas text
       fontSize: _.get(props, 'inputProps.fontSize', 16),
@@ -209,7 +209,7 @@ export default class extends PureComponent {
       this.drawVideo();
     }
   }
-  
+
   static getDerivedStateFromProps(props, state) {
     return {
       fontSize: _.get(props, 'inputProps.fontSize', state.fontSize),
@@ -415,7 +415,7 @@ export default class extends PureComponent {
       }
       if (!selected) {
         if (this.inputtext) {
-          this.setState({ clickedPotision: { x, y } });
+          this.setState({ clickedPosition: { x, y } });
           this.inputtext.focus();
         }
       }
@@ -446,14 +446,14 @@ export default class extends PureComponent {
 
     // Draw to this end pos
     this.handleDrawMove(e);
-    
+
     // Stop drawing & save the drawn line
     this.isDrawing = false;
     this.isPressing = false;
 
     const pointsToSend = [...this.points];
     this.saveLine();
-        
+
     if (this.props.mode === 'text') {
       this.setState({ selectedText: -1 });
       this.triggerOnChange();
@@ -630,13 +630,13 @@ export default class extends PureComponent {
         x: lastChange.text.x * scaleX,
         y: lastChange.text.y * scaleY,
       };
-      
+
       if (lastChange.status === 'new') {
         this.texts.push(text);
       } else if (lastChange.status === 'move') {
         this.texts[lastChange.index] = text;
       }
-      
+
       this.drawText();
 
     } else if (_.has(lastChange, 'points')) {
@@ -674,16 +674,16 @@ export default class extends PureComponent {
 
     // Reset points array
     this.points.length = 0;
-    
+
     const width = this.canvas.temp.width;
     const height = this.canvas.temp.height;
-    
+
     // Copy the line to the drawing canvas
     this.ctx.drawing.drawImage(this.canvas.temp, 0, 0, width, height);
-    
+
     // Clear the temporary line-drawing canvas
     this.ctx.temp.clearRect(0, 0, width, height);
-    
+
     if (triggerEvent) {
       this.triggerOnChange();
     }
@@ -917,8 +917,8 @@ export default class extends PureComponent {
 
     const text = {
       text: this.state.text,
-      x: this.state.clickedPotision.x,
-      y: this.state.clickedPotision.y + this.state.textHeight,
+      x: this.state.clickedPosition.x,
+      y: this.state.clickedPosition.y + this.state.textHeight,
       fontFamily: this.state.fontFamily,
       ratio: this.getFontRatio(),
       fillStyle: this.props.textColor,
@@ -931,7 +931,7 @@ export default class extends PureComponent {
     // put this new text in the texts array
     this.texts.push(text);
     this.drawText();
-    
+
     const bottomOffset = 30;
     const offsetX = 50;
 
@@ -941,7 +941,7 @@ export default class extends PureComponent {
       nextInputX = nextInputX + offsetX;
       nextInputY = _.get(this.props, 'inputProps.top', 50);
     }
-    this.setState({ text: '', clickedPotision: { x: nextInputX, y: nextInputY } });
+    this.setState({ text: '', clickedPosition: { x: nextInputX, y: nextInputY } });
 
     this.lastChange = {
       width: this.props.canvasWidth,
@@ -1027,8 +1027,8 @@ export default class extends PureComponent {
               ...this.props.inputProps,
               position: 'absolute',
               zIndex: 20, // should be on the top of all canvas
-              left: this.state.clickedPotision.x,
-              top: this.state.clickedPotision.y,
+              left: this.state.clickedPosition.x,
+              top: this.state.clickedPosition.y,
               color: this.props.textColor,
             }}
             value={this.state.text}
