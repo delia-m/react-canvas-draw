@@ -807,7 +807,7 @@ export default class extends PureComponent {
     ctx.fill();
   };
 
-  snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false) => {
+  snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false, copyOriginal = false) => {
     console.log({ includeBackground, quality, bgOriginalSize });
     // default target = drawing canvas
     let targetWidth = this.canvas.drawing.width;
@@ -841,11 +841,21 @@ export default class extends PureComponent {
       }
     }
 
+    const returnValue = {};
+    if (copyOriginal) {
+      returnValue.original = this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
+    }
+
     this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, targetWidth, targetHeight);
     this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, targetWidth, targetHeight);
     this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, targetWidth, targetHeight);
     // take a snapshot with image
-    return this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
+    returnValue.snapshot = this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
+    if (copyOriginal) {
+      return returnValue;
+    }
+
+    return returnValue.snapshot;
   };
 
   handleTextMode = (e) => {
