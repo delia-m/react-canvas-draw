@@ -808,7 +808,6 @@ export default class extends PureComponent {
   };
 
   snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false, copyOriginal = false) => {
-    console.log({ includeBackground, quality, bgOriginalSize });
     // default target = drawing canvas
     let targetWidth = this.canvas.drawing.width;
     let targetHeight = this.canvas.drawing.height
