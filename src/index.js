@@ -76,6 +76,7 @@ export default class extends PureComponent {
     textColor: PropTypes.string,
     inputProps: PropTypes.object,
     onSyncDataChange: PropTypes.func,
+    userId: PropTypes.number,
   };
 
   static defaultProps = {
@@ -108,6 +109,7 @@ export default class extends PureComponent {
       fontFamily: 'verdana',
     },
     onSyncDataChange: null,
+    userId: undefined,
   };
 
   constructor(props) {
@@ -669,7 +671,9 @@ export default class extends PureComponent {
     this.lines.push({
       points: [...this.points],
       brushColor: brushColor || this.props.brushColor,
-      brushRadius: brushRadius || this.props.brushRadius
+      brushRadius: brushRadius || this.props.brushRadius,
+      userId: this.props.userId,
+      timestamp: new Date().getTime(),
     });
 
     // Reset points array
@@ -918,6 +922,8 @@ export default class extends PureComponent {
       fontFamily: this.state.fontFamily,
       ratio: this.getFontRatio(),
       fillStyle: this.props.textColor,
+      userId: this.props.userId,
+      timestamp: new Date().getTime(),
     };
 
     this.ctx.temp.font = this.getFont();

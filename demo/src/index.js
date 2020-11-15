@@ -320,6 +320,7 @@ class Demo extends Component {
               fontFamily: 'sans-serif',
               fontSize: 50,
             }}
+            userId={15}
           />
           <CanvasDraw
             hideGrid
@@ -335,7 +336,7 @@ class Demo extends Component {
         <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>
         <button onClick={() => this.setState({ mode: 'brush' })}>blush mode</button>
         <button onClick={() => this.setState({ mode: 'text' })}>text mode</button>
-        <button onClick={() => console.log(this.saveableCanvas.getLastChange())}>Get last change</button>
+        <button onClick={() => console.log(this.saveableCanvas.getSaveData())}>Get current data</button>
         <p>
           The following is a disabled canvas with a hidden grid that we use to
           load & show your saved drawing.
