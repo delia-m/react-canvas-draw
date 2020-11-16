@@ -71,11 +71,9 @@ class Demo extends Component {
           brushColor="red"
           key={_.get(this.state.stream, 'id')}
           videoStream={this.state.stream}
-          onloaddata={() => {
+          onLoadMedia={({ width, height }) => {
             this.setState({ playbutton: true })
             if (this.streamCanvas.video) {
-              let width = this.streamCanvas.video.videoWidth;
-              let height = this.streamCanvas.video.videoHeight;
               this.setState({
                 videoHeight: height,
                 videoWidth: width,
@@ -113,11 +111,12 @@ class Demo extends Component {
           ref={canvasDraw => (this.videoCanvas = canvasDraw)}
           brushColor="red"
           videoSrc="http://upload.wikimedia.org/wikipedia/commons/7/79/Big_Buck_Bunny_small.ogv"
-          onloaddata={() => {
+          onLoadMedia={({ width, height }) => {
+            console.log({ width, height });
             this.setState({ playbutton: true })
             if (this.videoCanvas.video) {
-              let width = this.videoCanvas.video.videoWidth;
-              let height = this.videoCanvas.video.videoHeight;
+              // let width = this.videoCanvas.video.videoWidth;
+              // let height = this.videoCanvas.video.videoHeight;
               if (width < 400 && height < 400) {
                 width = width * 2;
                 height = height * 2;
@@ -159,6 +158,9 @@ class Demo extends Component {
           ref={canvasDraw => (this.imageCanvas = canvasDraw)}
           brushColor="rgba(155,12,60,0.3)"
           imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
+          onLoadMedia={({ width, height }) => {
+            console.log('image loaded:', { width, height });
+          }}
         />
         <button onClick={() => {
           const {snapshot} = this.imageCanvas.snapshot();

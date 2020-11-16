@@ -237,6 +237,7 @@ export default class extends PureComponent {
     this.image.onload = () => {
       this.imageSize = { width: this.image.width, height: this.image.height };
       drawImage({ ctx: this.ctx.grid, img: this.image });
+      this.props.onLoadMedia && this.props.onLoadMedia(this.imageSize);
     }
 
     this.image.src = this.props.imgSrc;
@@ -981,10 +982,10 @@ export default class extends PureComponent {
             ref={(video) => this.video = video}
             style={{ ...canvasStyle, backgroundColor: '#fff', zIndex: 9 }}
             onLoadedData={() => {
-              console.log("loaded canvas video data");
-              if (this.props.onloaddata) {
-                this.props.onloaddata();
-              }
+              this.props.onLoadMedia && this.props.onLoadMedia({
+                width: this.video.videoWidth,
+                height: this.video.videoHeight,
+              });
               this.video.play();
             }}
             rel="noopener noreferrer"
