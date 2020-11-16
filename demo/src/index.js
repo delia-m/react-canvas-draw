@@ -331,6 +331,7 @@ class Demo extends Component {
             onSyncDataChange={(lastChange) => {
               this.saveableCanvas.syncData(lastChange);
             }}
+            userId={10}
           />
         </div>
         <p>current mode: {this.state.mode ? this.state.mode : 'brush'}</p>

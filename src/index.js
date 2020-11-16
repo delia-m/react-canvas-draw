@@ -469,6 +469,8 @@ export default class extends PureComponent {
         points: pointsToSend,
         brushColor: this.props.brushColor,
         brushRadius: this.props.brushRadius,
+        userId: this.props.userId,
+        timestamp: new Date().getTime(),
       });
     }
   };
@@ -642,7 +644,7 @@ export default class extends PureComponent {
       this.drawText();
 
     } else if (_.has(lastChange, 'points')) {
-      const { brushColor } = lastChange;
+      const { brushColor, userId, timestamp } = lastChange;
       const brushRadius = _.isNaN(lastChange.brushRadius * scaleAvg) ? lastChange.brushRadius : lastChange.brushRadius * scaleAvg;
       const points = _.map(lastChange.points, p => ({
         ...p,
@@ -659,12 +661,12 @@ export default class extends PureComponent {
       if (lastChange.isDrawing === false) {
         this.isDrawing = false;
         this.isPressing = false;
-        this.saveLine({ brushColor, brushRadius }, false);
+        this.saveLine({ brushColor, brushRadius, userId, timestamp }, false);
       }
     }
   };
 
-  saveLine = ({ brushColor, brushRadius } = {}, triggerEvent = true) => {
+  saveLine = ({ brushColor, brushRadius, userId, timestamp } = {}, triggerEvent = true) => {
     if (this.points.length < 2) return;
 
     // Save as new line
@@ -672,8 +674,8 @@ export default class extends PureComponent {
       points: [...this.points],
       brushColor: brushColor || this.props.brushColor,
       brushRadius: brushRadius || this.props.brushRadius,
-      userId: this.props.userId,
-      timestamp: new Date().getTime(),
+      userId: userId || this.props.userId,
+      timestamp: timestamp || new Date().getTime(),
     });
 
     // Reset points array
