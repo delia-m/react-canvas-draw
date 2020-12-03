@@ -5,6 +5,14 @@ import _ from 'lodash';
 import CanvasDraw from "../../src";
 import classNames from "./index.css";
 
+const images = [
+  'https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFWNiYAtw9Dbnt8XMwAs5UFxVJ-L2L4Kjt2Q&usqp=CAU',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR55DGM9JWtHeXFmopYScvXq2c9DATtf9O9Dg&usqp=CAU',
+  'https://live.staticflickr.com/4561/38054606355_26429c884f_b.jpg',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSCGzDyCogLDj-A-4APBAjl-1cm7lKTW8xDOQ&usqp=CAU',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfJhWv8tsCcP2XdkRNdZeFYKIWmGWEg-Ma9Q&usqp=CAU'
+];
 class Demo extends Component {
   state = {
     color: "#ffc600",
@@ -13,7 +21,11 @@ class Demo extends Component {
     brushRadius: 10,
     lazyRadius: 12,
     hideInterface: true,
+    randomImage: images[0],
   };
+
+  intervalChangeImage = null;
+
   componentDidMount() {
     // let's change the color randomly every 2 seconds. fun!
     window.setInterval(() => {
@@ -22,6 +34,16 @@ class Demo extends Component {
       });
     }, 2000);
   }
+
+  setIntervalChangeImage = () => {
+    this.intervalChangeImage = setTimeout(() => {
+      const tempImages = _.filter(images, n => n !== this.state.randomImage);
+      const nextImageIndex = Math.floor((Math.random() * tempImages.length));
+      this.setState({ randomImage: tempImages[nextImageIndex] });
+      this.intervalChangeImage = null;
+    }, 3000);
+  };
+
   render() {
     return (
       <div>
@@ -180,6 +202,21 @@ class Demo extends Component {
         <br />
         <img src={this.state.imagesCanvasSnapshot} />
 
+
+
+        <h2>Multiple Background Image</h2>
+        <CanvasDraw
+          ref={canvasDraw => (this.imageCanvas = canvasDraw)}
+          brushColor="rgba(155,12,60,0.3)"
+          // key={this.state.randomImage}
+          imgSrc={this.state.randomImage}
+          onLoadMedia={({ width, height }) => {
+            // console.log('[Multiple Background Image] image loaded:', { width, height });
+            if (!this.intervalChangeImage) {
+              this.setIntervalChangeImage();
+            }
+          }}
+        />
 
 
         <h2>Add text</h2>

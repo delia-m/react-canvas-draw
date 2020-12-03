@@ -210,6 +210,10 @@ export default class extends PureComponent {
     if (!prevProps.videoStream && this.props.videoStream) {
       this.drawVideo();
     }
+
+    if (prevProps.imgSrc !== this.props.imgSrc) {
+      this.drawImage();
+    }
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -231,7 +235,7 @@ export default class extends PureComponent {
     this.image = new Image();
 
     // Prevent SecurityError "Tainted canvases may not be exported." #70
-    this.image.crossOrigin = "anonymous";
+    this.image.crossOrigin = "Anonymous";
 
     // Draw the image once loaded
     this.image.onload = () => {
