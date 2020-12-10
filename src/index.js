@@ -226,6 +226,9 @@ export default class extends PureComponent {
 
   componentWillUnmount = () => {
     this.canvasObserver.unobserve(this.canvasContainer);
+    if (this.video) {
+      this.video.removeEventListener('resize', this.onVideoResize);
+    }
   };
 
   drawImage = () => {
@@ -247,11 +250,21 @@ export default class extends PureComponent {
     this.image.src = this.props.imgSrc;
   };
 
+  onVideoResize = () => {
+    if (this.video) {
+      this.props.onLoadMedia &&  this.props.onLoadMedia({
+        width: this.video.videoWidth,
+        height: this.video.videoHeight
+      });
+    }
+  };
+
   drawVideo = () => {
     if (this.video && this.props.videoStream) {
       if (this.video.srcObject !== this.props.videoStream) {
         this.video.srcObject = this.props.videoStream;
       }
+      this.video.addEventListener('resize', this.onVideoResize);
     }
   };
 
@@ -986,11 +999,7 @@ export default class extends PureComponent {
             ref={(video) => this.video = video}
             style={{ ...canvasStyle, backgroundColor: '#fff', zIndex: 9 }}
             onLoadedData={() => {
-              this.props.onLoadMedia && this.props.onLoadMedia({
-                width: this.video.videoWidth,
-                height: this.video.videoHeight,
-              });
-              this.video.play();
+              this.video && this.video.play();
             }}
             rel="noopener noreferrer"
             crossOrigin="Anonymous"
