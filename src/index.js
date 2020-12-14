@@ -508,7 +508,7 @@ export default class extends PureComponent {
       this.setCanvasSize(this.canvas.grid, width, height);
       this.setCanvasSize(this.canvas.text, width, height);
       this.setCanvasSize(this.canvas.snapshot, width, height);
-      if (this.video) {
+      if (this.video && width > 0 && height > 0) {
         this.setCanvasSize(this.video, width, height);
       }
 
