@@ -213,6 +213,7 @@ export default class extends PureComponent {
 
     if (prevProps.imgSrc !== this.props.imgSrc) {
       this.drawImage();
+      this.clear();
     }
   }
 
