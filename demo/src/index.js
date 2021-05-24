@@ -344,6 +344,9 @@ class Demo extends Component {
             ref={canvasDraw => (this.saveableCanvas = canvasDraw)}
             brushColor={this.state.color}
             textColor={this.state.color}
+            textBgColor={'grey'}
+            textBgPaddingVertical={20}
+            textBgPaddingHorizontal={15}
             brushRadius={this.state.brushRadius}
             lazyRadius={this.state.lazyRadius}
             canvasWidth={this.state.width + 100}

@@ -102,6 +102,9 @@ export default class extends PureComponent {
       controls: false,
     },
     textColor: "#000",
+    textBgColor: undefined,
+    textBgPaddingVertical: 10, // top and bottom
+    textBgPaddingHorizontal: 5, // left and right
     inputProps: {
       top: 50,
       left: 10,
@@ -496,7 +499,11 @@ export default class extends PureComponent {
 
   textHittest = (x, y, textIndex) => {
     var text = this.texts[textIndex];
-    return (x >= text.x && x <= text.x + text.width && y >= text.y - text.height && y <= text.y);
+    // include text bg padding
+    return (x >= text.x - _.toInteger(text.bgPaddingVertical)
+      && x <= text.x + text.width + _.toInteger(text.bgPaddingVertical)
+      && y >= text.y - _.toInteger(text.bgPaddingHorizontal)
+      && y <= text.y + text.height + _.toInteger(text.bgPaddingHorizontal));
   };
 
   handleCanvasResize = (entries, observer) => {
@@ -912,7 +919,26 @@ export default class extends PureComponent {
     for (var i = 0; i < this.texts.length; i++) {
       var text = this.texts[i];
       this.ctx[canvas].font = this.getFont(text.fontFamily, text.ratio);
-      this.ctx[canvas].fillStyle = text.fillStyle;
+
+      // draw text from top
+      this.ctx[canvas].textBaseline = 'top';
+
+      if (text.bgColor) {
+        // get background dimensions
+        const fontHeight = this.props.canvasWidth * text.ratio;
+        const fontWidth = this.ctx[canvas].measureText(text.text).width;
+        // color for background
+        this.ctx[canvas].fillStyle = text.bgColor;
+        this.ctx[canvas].fillRect(
+          text.x - _.toInteger(text.bgPaddingVertical),
+          text.y - _.toInteger(text.bgPaddingHorizontal),
+          fontWidth + (_.toInteger(text.bgPaddingVertical) * 2),
+          fontHeight + (_.toInteger(text.bgPaddingHorizontal) * 2)
+        );
+      }
+
+      // color for text
+      this.ctx[canvas].fillStyle = text.color;
       this.ctx[canvas].fillText(text.text, text.x, text.y);
     }
   };
@@ -942,7 +968,10 @@ export default class extends PureComponent {
       y: this.state.clickedPosition.y + this.state.textHeight,
       fontFamily: this.state.fontFamily,
       ratio: this.getFontRatio(),
-      fillStyle: this.props.textColor,
+      color: this.props.textColor,
+      bgColor: this.props.textBgColor,
+      bgPaddingVertical: this.props.textBgPaddingVertical,
+      bgPaddingHorizontal: this.props.textBgPaddingHorizontal,
       userId: this.props.userId,
       timestamp: new Date().getTime(),
     };
