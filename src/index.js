@@ -620,6 +620,11 @@ export default class extends PureComponent {
     let p1 = points[0];
     let p2 = points[1];
 
+    if (!p1 || !p2) {
+      // do nothing if undo/reset while one guy drawing
+      return;
+    }
+
     this.ctx.temp.moveTo(p2.x, p2.y);
     this.ctx.temp.beginPath();
 
