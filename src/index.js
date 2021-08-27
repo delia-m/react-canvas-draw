@@ -77,6 +77,7 @@ export default class extends PureComponent {
     inputProps: PropTypes.object,
     onSyncDataChange: PropTypes.func,
     userId: PropTypes.number,
+    onDrawStart: PropTypes.func,
   };
 
   static defaultProps = {
@@ -113,6 +114,7 @@ export default class extends PureComponent {
     },
     onSyncDataChange: null,
     userId: undefined,
+    onDrawStart: undefined,
   };
 
   constructor(props) {
@@ -419,6 +421,12 @@ export default class extends PureComponent {
   };
 
   handleDrawStart = e => {
+    if (this.props.onDrawStart) {
+      if (!this.props.onDrawStart(e)) {
+        return;
+      }
+    }
+
     e.preventDefault();
 
     // Start drawing
