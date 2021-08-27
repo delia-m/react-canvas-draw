@@ -55,7 +55,10 @@
   "author": "embiem",
   "homepage": "https://delia-m.github.io/react-canvas-draw/",
   "license": "MIT",
-  "repository": "https://github.com/delia-m/react-canvas-draw",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/delia-m/react-canvas-draw.git"
+  },
   "bugs": {
     "url": "https://github.com/delia-m/react-canvas-draw/issues"
   },
@@ -65,5 +68,8 @@
     "reactjs",
     "canvas",
     "drawing"
-  ]
+  ],
+  "directories": {
+    "test": "tests"
+  }
 }
