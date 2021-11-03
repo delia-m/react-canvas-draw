@@ -220,6 +220,10 @@ export default class extends PureComponent {
       this.drawImage();
       this.clear();
     }
+
+    if (!this.props.imgSrc) {
+      this.image = null;
+    }
   }
 
   static getDerivedStateFromProps(props, state) {
