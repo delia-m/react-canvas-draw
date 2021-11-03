@@ -857,9 +857,13 @@ export default class extends PureComponent {
   };
 
   snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false, copyOriginal = false) => {
+    if (!this.video && !this.image) {
+      throw new Error('No source for snapshot');
+    }
+
     // default target = drawing canvas
     let targetWidth = this.canvas.drawing.width;
-    let targetHeight = this.canvas.drawing.height
+    let targetHeight = this.canvas.drawing.height;
 
     if (includeBackground && bgOriginalSize) {
       if (this.image && this.imageSize) {
