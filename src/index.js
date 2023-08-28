@@ -871,8 +871,15 @@ export default class extends PureComponent {
         targetWidth = width;
         targetHeight = height;
       } else if (this.video) {
-        targetWidth = this.video.videoWidth;
-        targetHeight = this.video.videoHeight;
+        // get video track's resolution
+        if (this.video.srcObject) {
+          const { width, height } = this.video.srcObject.getVideoTracks()[0].getSettings();
+          targetWidth = width;
+          targetHeight = height;
+        } else {
+          targetWidth = this.video.videoWidth;
+          targetHeight = this.video.videoHeight;
+        }
       }
     }
 
