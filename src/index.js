@@ -856,7 +856,7 @@ export default class extends PureComponent {
     ctx.fill();
   };
 
-  snapshot = (includeBackground = true, quality = 1, bgOriginalSize = false, copyOriginal = false) => {
+  snapshot = (includeBackground = true, scale = 1, bgOriginalSize = false, copyOriginal = false) => {
     if (!this.video && !this.image) {
       throw new Error('No source for snapshot');
     }
@@ -883,6 +883,9 @@ export default class extends PureComponent {
       }
     }
 
+    targetWidth = targetWidth * scale;
+    targetHeight = targetHeight * scale;
+
     // set snapshot canvas size to target size
     this.setCanvasSize(this.canvas.snapshot, targetWidth, targetHeight);
 
@@ -902,14 +905,14 @@ export default class extends PureComponent {
 
     const returnValue = {};
     if (copyOriginal) {
-      returnValue.original = this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
+      returnValue.original = this.canvas.snapshot.toDataURL("image/jpeg"); // data:base64
     }
 
     this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, targetWidth, targetHeight);
     this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, targetWidth, targetHeight);
     this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, targetWidth, targetHeight);
     // take a snapshot with image
-    returnValue.snapshot = this.canvas.snapshot.toDataURL("image/jpeg", quality); // data:base64
+    returnValue.snapshot = this.canvas.snapshot.toDataURL("image/jpeg"); // data:base64
 
     return returnValue;
   };

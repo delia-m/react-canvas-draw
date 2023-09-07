@@ -70,6 +70,7 @@
     "drawing"
   ],
   "directories": {
+    "lib": "lib",
     "test": "tests"
   }
 }
