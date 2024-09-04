@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "catenary-curve": "^1.0.1",
+    "fabric": "^6.4.1",
     "lazy-brush": "^1.0.1",
     "lodash": "^4.17.20",
     "prop-types": "^15.6.2",
@@ -35,6 +36,8 @@
   "devDependencies": {
     "all-contributors-cli": "^5.4.1",
     "babel-eslint": "^7.2.3",
+    "codecov": "3.6.x",
+    "coveralls": "3.0.x",
     "css-loader": "^0.28.9",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1",
@@ -48,9 +51,7 @@
     "nwb": "0.21.x",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "style-loader": "^0.19.1",
-    "codecov": "3.6.x",
-    "coveralls": "3.0.x"
+    "style-loader": "^0.19.1"
   },
   "author": "embiem",
   "homepage": "https://delia-m.github.io/react-canvas-draw/",
