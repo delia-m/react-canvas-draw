@@ -258,7 +258,6 @@ class Demo extends Component {
 
             <h2>Multiple Background Image</h2>
             <CanvasDraw
-              ref={(canvasDraw) => (this.imageCanvas = canvasDraw)}
               brushColor="rgba(155,12,60,0.3)"
               // key={this.state.randomImage}
               imgSrc={this.state.randomImage}

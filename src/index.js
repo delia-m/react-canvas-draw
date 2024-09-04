@@ -2,7 +2,8 @@ import React, { PureComponent } from "react";
 import PropTypes from "prop-types";
 import { LazyBrush } from "lazy-brush";
 import { Catenary } from "catenary-curve";
-import _ from 'lodash';
+import * as fabric from "fabric"; // v6
+import _ from "lodash";
 
 import ResizeObserver from "resize-observer-polyfill";
 
@@ -11,45 +12,49 @@ import drawImage from "./drawImage";
 function midPointBtw(p1, p2) {
   return {
     x: p1.x + (p2.x - p1.x) / 2,
-    y: p1.y + (p2.y - p1.y) / 2
+    y: p1.y + (p2.y - p1.y) / 2,
   };
 }
 
 const canvasStyle = {
   display: "block",
-  position: "absolute"
+  position: "absolute",
 };
 
 const canvasTypes = [
   {
     name: "interface",
-    zIndex: 15
+    zIndex: 15, //should be the top as it's catching mouse events
   },
   {
     name: "drawing",
-    zIndex: 11
+    zIndex: 11,
   },
   {
     name: "text",
-    zIndex: 11
+    zIndex: 11,
   },
   {
     name: "temp",
-    zIndex: 14
+    zIndex: 14,
   },
   {
     name: "grid",
-    zIndex: 10
+    zIndex: 10,
   },
   {
     name: "snapshot", // NOTE: video will be 9
-    zIndex: 8
+    zIndex: 8,
+  },
+  {
+    name: "marker",
+    zIndex: 14,
   },
 ];
 
 const dimensionsPropTypes = PropTypes.oneOfType([
   PropTypes.number,
-  PropTypes.string
+  PropTypes.string,
 ]);
 
 export default class extends PureComponent {
@@ -78,6 +83,7 @@ export default class extends PureComponent {
     onSyncDataChange: PropTypes.func,
     userId: PropTypes.number,
     onDrawStart: PropTypes.func,
+    markers: PropTypes.array,
   };
 
   static defaultProps = {
@@ -110,11 +116,12 @@ export default class extends PureComponent {
       top: 50,
       left: 10,
       fontSize: 16,
-      fontFamily: 'verdana',
+      fontFamily: "verdana",
     },
     onSyncDataChange: null,
     userId: undefined,
     onDrawStart: undefined,
+    markers: [],
   };
 
   constructor(props) {
@@ -128,6 +135,7 @@ export default class extends PureComponent {
     this.points = [];
     this.lines = [];
     this.texts = [];
+    this.markers = [];
 
     this.mouseHasMoved = true;
     this.valuesChanged = true;
@@ -139,19 +147,23 @@ export default class extends PureComponent {
     this.state = {
       // for text input
       textinput: true,
-      text: '',
-      clickedPosition: { x: _.get(props, 'inputProps.left', 10), y: _.get(props, 'inputProps.top', 50) },
+      text: "",
+      clickedPosition: {
+        x: _.get(props, "inputProps.left", 10),
+        y: _.get(props, "inputProps.top", 50),
+      },
 
       // for canvas text
-      fontSize: _.get(props, 'inputProps.fontSize', 16),
-      fontFamily: _.get(props, 'inputProps.fontFamily', 'verdana'),
-      textHeight: _.get(props, 'inputProps.fontSize', 16),
+      fontSize: _.get(props, "inputProps.fontSize", 16),
+      fontFamily: _.get(props, "inputProps.fontFamily", "verdana"),
+      textHeight: _.get(props, "inputProps.fontSize", 16),
 
       // for moving text
       selectedText: -1,
       startX: 0,
       startY: 0,
     };
+    this.fabricCanvas = null;
   }
 
   componentDidMount() {
@@ -160,8 +172,8 @@ export default class extends PureComponent {
       enabled: true,
       initialPoint: {
         x: window.innerWidth / 2,
-        y: window.innerHeight / 2
-      }
+        y: window.innerHeight / 2,
+      },
     });
     this.chainLength = this.props.lazyRadius * window.devicePixelRatio;
 
@@ -172,6 +184,7 @@ export default class extends PureComponent {
 
     this.drawImage();
     this.drawVideo();
+    this.drawMarkers();
     this.loop();
 
     window.setTimeout(() => {
@@ -216,6 +229,10 @@ export default class extends PureComponent {
       this.drawVideo();
     }
 
+    if (prevProps.markers !== this.props.markers) {
+      this.drawMarkers();
+    }
+
     if (prevProps.imgSrc !== this.props.imgSrc) {
       this.drawImage();
       this.clear();
@@ -228,16 +245,20 @@ export default class extends PureComponent {
 
   static getDerivedStateFromProps(props, state) {
     return {
-      fontSize: _.get(props, 'inputProps.fontSize', state.fontSize),
-      fontFamily: _.get(props, 'inputProps.fontFamily', state.fontFamily),
-      textHeight: _.get(props, 'inputProps.fontSize', state.textHeight),
+      fontSize: _.get(props, "inputProps.fontSize", state.fontSize),
+      fontFamily: _.get(props, "inputProps.fontFamily", state.fontFamily),
+      textHeight: _.get(props, "inputProps.fontSize", state.textHeight),
     };
   }
 
   componentWillUnmount = () => {
     this.canvasObserver.unobserve(this.canvasContainer);
     if (this.video) {
-      this.video.removeEventListener('resize', this.onVideoResize);
+      this.video.removeEventListener("resize", this.onVideoResize);
+    }
+    if (this.fabricCanvas) {
+      this.fabricCanvas.dispose();
+      this.fabricCanvas = null;
     }
   };
 
@@ -255,17 +276,18 @@ export default class extends PureComponent {
       this.imageSize = { width: this.image.width, height: this.image.height };
       drawImage({ ctx: this.ctx.grid, img: this.image });
       this.props.onLoadMedia && this.props.onLoadMedia(this.imageSize);
-    }
+    };
 
     this.image.src = this.props.imgSrc;
   };
 
   onVideoResize = () => {
     if (this.video) {
-      this.props.onLoadMedia &&  this.props.onLoadMedia({
-        width: this.video.videoWidth,
-        height: this.video.videoHeight
-      });
+      this.props.onLoadMedia &&
+        this.props.onLoadMedia({
+          width: this.video.videoWidth,
+          height: this.video.videoHeight,
+        });
     }
   };
 
@@ -274,8 +296,173 @@ export default class extends PureComponent {
       if (this.video.srcObject !== this.props.videoStream) {
         this.video.srcObject = this.props.videoStream;
       }
-      this.video.addEventListener('resize', this.onVideoResize);
+      this.video.addEventListener("resize", this.onVideoResize);
     }
+  };
+
+  updateBubble = (textbox, rect, handle, poly, poly2, strokeWidth) => {
+    var arrowWidth = 16;
+    //lets spare us some typing
+    var x = textbox.left;
+    var y = textbox.top;
+
+    //update rect
+    var boxPadding = 10;
+    var bound = textbox.getBoundingRect();
+    rect.left = bound.left - boxPadding;
+    rect.top = bound.top - boxPadding;
+    rect.width = bound.width + boxPadding * 2;
+    rect.height = bound.height + boxPadding * 2;
+
+    //if the textbox was moved, update the handle position too
+    if (x !== textbox.lastLeft || y !== textbox.lastTop) {
+      handle.left += x - textbox.lastLeft;
+      handle.top += y - textbox.lastTop;
+      handle.setCoords();
+    }
+
+    //to support 360° thick tails we have to do some triangulation
+    var halfPi = Math.PI / 2;
+    var angleRadians = Math.atan2(handle.top - y, handle.left - x);
+    var offsetX = Math.cos(angleRadians + halfPi);
+    var offsetY = Math.sin(angleRadians + halfPi);
+
+    //update tail poly
+    poly.points[0].x = handle.left;
+    poly.points[0].y = handle.top;
+    poly.points[1].x = x - offsetX * arrowWidth;
+    poly.points[1].y = y - offsetY * arrowWidth;
+    poly.points[2].x = x + offsetX * arrowWidth;
+    poly.points[2].y = y + offsetY * arrowWidth;
+
+    //white overlay poly (prevent dividing line)
+    var halfStroke = strokeWidth / 2;
+    poly2.points[0].x = handle.left;
+    poly2.points[0].y = handle.top;
+    poly2.points[1].x = x - offsetX * (arrowWidth - halfStroke);
+    poly2.points[1].y = y - offsetY * (arrowWidth - halfStroke);
+    poly2.points[2].x = x + offsetX * (arrowWidth - halfStroke);
+    poly2.points[2].y = y + offsetY * (arrowWidth - halfStroke);
+
+    //remember current position to detect further changes
+    textbox.lastLeft = x;
+    textbox.lastTop = y;
+  };
+
+  drawMarkers = () => {
+    if (_.isEmpty(this.props.markers)) {
+      return;
+    }
+    var fabricCanvas =
+      this.fabricCanvas || new fabric.Canvas(this.canvas.marker);
+
+    fabricCanvas.setDimensions({
+      width: this.canvas.marker.width,
+      height: this.canvas.marker.height,
+    });
+
+    _.map(this.props.markers, (marker, index) => {
+      if (!_.some(this.markers, { id: marker.id })) {
+        const { bgColor, borderColor, textColor, text } = marker;
+        var strokeWidth = 2;
+        var handleSize = 20;
+
+        var textbox = new fabric.Textbox(text, {
+          fill: textColor,
+          left: index * 10 + 200,
+          top: index * 10 + 80,
+          width: 30,
+          fontSize: 20,
+          fontFamily: "sans-serif",
+          textAlign: "center",
+          originY: "center",
+          originX: "center",
+          lockRotation: true,
+        });
+
+        //call setCoords whenever the textbox moved
+        var setCoords = textbox.setCoords.bind(textbox);
+        textbox.on({
+          moving: setCoords,
+          scaling: setCoords,
+          rotating: setCoords,
+        });
+
+        //to detect changes in the textbox position and update the handle when the textbox was moved, let's store the last known coords
+        textbox.lastLeft = textbox.left;
+        textbox.lastTop = textbox.top;
+
+        //speech bubble tail handle
+        var handle = new fabric.Rect({
+          fill: "transparent",
+          left: index * 10 + 200,
+          top: index * 10 + 120,
+          width: handleSize,
+          height: handleSize,
+          hasRotatingPoint: false,
+          hasControls: false,
+          originY: "center",
+          originX: "center",
+        });
+
+        //speech bubble background box
+        var rect = new fabric.Rect({
+          fill: bgColor,
+          stroke: borderColor,
+          strokeWidth: strokeWidth,
+          rx: 3,
+          ry: 3,
+          objectCaching: false,
+        });
+
+        //speech bubble tail polygon
+        var poly = new fabric.Polygon(
+          [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+            { x: 1, y: 0 },
+          ],
+          {
+            fill: bgColor,
+            stroke: borderColor,
+            strokeWidth: strokeWidth,
+            objectCaching: false,
+          }
+        );
+
+        //2nd tail poly to overlay the bubble stroke
+        var poly2 = new fabric.Polygon(
+          [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+            { x: 1, y: 0 },
+          ],
+          {
+            fill: bgColor,
+            objectCaching: false,
+          }
+        );
+
+        fabricCanvas.add(poly, rect, poly2, textbox);
+        fabricCanvas.add(handle);
+        fabricCanvas.on("after:render", () =>
+          this.updateBubble(textbox, rect, handle, poly, poly2, strokeWidth)
+        );
+        this.updateBubble(textbox, rect, handle, poly, poly2, strokeWidth);
+
+        this.fabricCanvas = fabricCanvas;
+        this.markers.push(marker);
+      }
+    });
+
+    this.lastChange = {
+      ...this.lastChange,
+      fabric: fabricCanvas.toJSON(),
+    };
+
+    // this.triggerOnChange();
+    console.log("[drawMarkers] this.lastChange:", this.lastChange.fabric);
+    this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   };
 
   playVideo = () => {
@@ -283,12 +470,13 @@ export default class extends PureComponent {
   };
 
   undo = (mode = this.props.mode, triggerEvent = true) => {
-    if (mode === 'text') {
+    if (mode === "text") {
       this.texts.pop();
       this.drawText();
       if (triggerEvent) {
-        this.lastChange = { status: 'undo', mode };
-        this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+        this.lastChange = { status: "undo", mode };
+        this.props.onSyncDataChange &&
+          this.props.onSyncDataChange(this.lastChange);
       }
       return;
     }
@@ -313,8 +501,9 @@ export default class extends PureComponent {
     this.simulateDrawingLines({ lines, immediate: true });
     if (triggerEvent) {
       this.triggerOnChange();
-      this.lastChange = { status: 'undo', mode };
-      this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+      this.lastChange = { status: "undo", mode };
+      this.props.onSyncDataChange &&
+        this.props.onSyncDataChange(this.lastChange);
     }
   };
 
@@ -347,7 +536,7 @@ export default class extends PureComponent {
     ) {
       this.simulateDrawingLines({
         lines,
-        immediate
+        immediate,
       });
       this.texts = texts;
     } else {
@@ -356,23 +545,23 @@ export default class extends PureComponent {
       const scaleY = this.props.canvasHeight / height;
       const scaleAvg = (scaleX + scaleY) / 2;
       if (!_.isEmpty(texts)) {
-        this.texts = _.map(texts, t => ({
+        this.texts = _.map(texts, (t) => ({
           ...t,
           x: t.x * scaleX,
-          y: t.y * scaleY
+          y: t.y * scaleY,
         }));
       }
 
       this.simulateDrawingLines({
-        lines: lines.map(line => ({
+        lines: lines.map((line) => ({
           ...line,
-          points: line.points.map(p => ({
+          points: line.points.map((p) => ({
             x: p.x * scaleX,
-            y: p.y * scaleY
+            y: p.y * scaleY,
           })),
-          brushRadius: line.brushRadius * scaleAvg
+          brushRadius: line.brushRadius * scaleAvg,
         })),
-        immediate
+        immediate,
       });
     }
 
@@ -385,7 +574,7 @@ export default class extends PureComponent {
     let curTime = 0;
     let timeoutGap = immediate ? 0 : this.props.loadTimeOffset;
 
-    lines.forEach(line => {
+    lines.forEach((line) => {
       const { points, brushColor, brushRadius } = line;
 
       // Draw all at once if immediate flag is set, instead of using setTimeout
@@ -394,7 +583,7 @@ export default class extends PureComponent {
         this.drawPoints({
           points,
           brushColor,
-          brushRadius
+          brushRadius,
         });
 
         // Save line with the drawn points
@@ -410,7 +599,7 @@ export default class extends PureComponent {
           this.drawPoints({
             points: points.slice(0, i + 1),
             brushColor,
-            brushRadius
+            brushRadius,
           });
         }, curTime);
       }
@@ -424,7 +613,7 @@ export default class extends PureComponent {
     });
   };
 
-  handleDrawStart = e => {
+  handleDrawStart = (e) => {
     if (this.props.onDrawStart) {
       if (!this.props.onDrawStart(e)) {
         return;
@@ -438,7 +627,7 @@ export default class extends PureComponent {
 
     const { x, y } = this.getPointerPos(e);
 
-    if (this.props.mode === 'text') {
+    if (this.props.mode === "text") {
       this.setState({ startX: x, startY: y });
 
       let selected = false;
@@ -466,8 +655,8 @@ export default class extends PureComponent {
     this.handlePointerMove(x, y);
   };
 
-  handleDrawMove = e => {
-    if (this.props.mode === 'text') {
+  handleDrawMove = (e) => {
+    if (this.props.mode === "text") {
       this.handleTextMode(e);
     }
 
@@ -477,7 +666,7 @@ export default class extends PureComponent {
     this.handlePointerMove(x, y);
   };
 
-  handleDrawEnd = e => {
+  handleDrawEnd = (e) => {
     e.preventDefault();
 
     // Draw to this end pos
@@ -490,32 +679,35 @@ export default class extends PureComponent {
     const pointsToSend = [...this.points];
     this.saveLine();
 
-    if (this.props.mode === 'text') {
+    if (this.props.mode === "text") {
       this.setState({ selectedText: -1 });
       this.triggerOnChange();
     }
 
     if (!_.isEmpty(pointsToSend)) {
-      this.props.onSyncDataChange && this.props.onSyncDataChange({
-        width: this.props.canvasWidth,
-        height: this.props.canvasHeight,
-        isDrawing: false,
-        points: pointsToSend,
-        brushColor: this.props.brushColor,
-        brushRadius: this.props.brushRadius,
-        userId: this.props.userId,
-        timestamp: new Date().getTime(),
-      });
+      this.props.onSyncDataChange &&
+        this.props.onSyncDataChange({
+          width: this.props.canvasWidth,
+          height: this.props.canvasHeight,
+          isDrawing: false,
+          points: pointsToSend,
+          brushColor: this.props.brushColor,
+          brushRadius: this.props.brushRadius,
+          userId: this.props.userId,
+          timestamp: new Date().getTime(),
+        });
     }
   };
 
   textHittest = (x, y, textIndex) => {
     var text = this.texts[textIndex];
     // include text bg padding
-    return (x >= text.x - _.toInteger(text.bgPaddingVertical)
-      && x <= text.x + text.width + _.toInteger(text.bgPaddingVertical)
-      && y >= text.y - _.toInteger(text.bgPaddingHorizontal)
-      && y <= text.y + text.height + _.toInteger(text.bgPaddingHorizontal));
+    return (
+      x >= text.x - _.toInteger(text.bgPaddingVertical) &&
+      x <= text.x + text.width + _.toInteger(text.bgPaddingVertical) &&
+      y >= text.y - _.toInteger(text.bgPaddingHorizontal) &&
+      y <= text.y + text.height + _.toInteger(text.bgPaddingHorizontal)
+    );
   };
 
   handleCanvasResize = (entries, observer) => {
@@ -528,6 +720,7 @@ export default class extends PureComponent {
       this.setCanvasSize(this.canvas.grid, width, height);
       this.setCanvasSize(this.canvas.text, width, height);
       this.setCanvasSize(this.canvas.snapshot, width, height);
+      this.setCanvasSize(this.canvas.marker, width, height);
       if (this.video && width > 0 && height > 0) {
         this.setCanvasSize(this.video, width, height);
       }
@@ -546,7 +739,7 @@ export default class extends PureComponent {
     canvas.style.height = height;
   };
 
-  getPointerPos = e => {
+  getPointerPos = (e) => {
     const rect = this.canvas.interface.getBoundingClientRect();
 
     // use cursor pos as default
@@ -562,7 +755,7 @@ export default class extends PureComponent {
     // return mouse/touch position inside canvas
     return {
       x: clientX - rect.left,
-      y: clientY - rect.top
+      y: clientY - rect.top,
     };
   };
 
@@ -589,7 +782,7 @@ export default class extends PureComponent {
       this.drawPoints({
         points: this.points,
         brushColor: this.props.brushColor,
-        brushRadius: this.props.brushRadius
+        brushRadius: this.props.brushRadius,
       });
     }
 
@@ -604,7 +797,8 @@ export default class extends PureComponent {
         brushColor: this.props.brushColor,
         brushRadius: this.props.brushRadius,
       };
-      this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+      this.props.onSyncDataChange &&
+        this.props.onSyncDataChange(this.lastChange);
     }
   };
 
@@ -647,7 +841,6 @@ export default class extends PureComponent {
     this.ctx.temp.stroke();
   };
 
-
   getLastChange = () => {
     return this.lastChange;
   };
@@ -657,11 +850,11 @@ export default class extends PureComponent {
       return;
     }
 
-    if (lastChange.status === 'clear') {
+    if (lastChange.status === "clear") {
       return this.clear(false);
     }
 
-    if (lastChange.status === 'undo') {
+    if (lastChange.status === "undo") {
       return this.undo(lastChange.mode, false);
     }
 
@@ -671,28 +864,29 @@ export default class extends PureComponent {
     const scaleY = this.props.canvasHeight / height;
     const scaleAvg = (scaleX + scaleY) / 2;
 
-    if (_.has(lastChange, 'text')) {
+    if (_.has(lastChange, "text")) {
       const text = {
         ...lastChange.text,
         x: lastChange.text.x * scaleX,
         y: lastChange.text.y * scaleY,
       };
 
-      if (lastChange.status === 'new') {
+      if (lastChange.status === "new") {
         this.texts.push(text);
-      } else if (lastChange.status === 'move') {
+      } else if (lastChange.status === "move") {
         this.texts[lastChange.index] = text;
       }
 
       this.drawText();
-
-    } else if (_.has(lastChange, 'points')) {
+    } else if (_.has(lastChange, "points")) {
       const { brushColor, userId, timestamp } = lastChange;
-      const brushRadius = _.isNaN(lastChange.brushRadius * scaleAvg) ? lastChange.brushRadius : lastChange.brushRadius * scaleAvg;
-      const points = _.map(lastChange.points, p => ({
+      const brushRadius = _.isNaN(lastChange.brushRadius * scaleAvg)
+        ? lastChange.brushRadius
+        : lastChange.brushRadius * scaleAvg;
+      const points = _.map(lastChange.points, (p) => ({
         ...p,
         x: p.x * scaleX,
-        y: p.y * scaleY
+        y: p.y * scaleY,
       }));
 
       if (!_.isEmpty(points)) {
@@ -709,7 +903,10 @@ export default class extends PureComponent {
     }
   };
 
-  saveLine = ({ brushColor, brushRadius, userId, timestamp } = {}, triggerEvent = true) => {
+  saveLine = (
+    { brushColor, brushRadius, userId, timestamp } = {},
+    triggerEvent = true
+  ) => {
     if (this.points.length < 2) return;
 
     // Save as new line
@@ -764,8 +961,15 @@ export default class extends PureComponent {
       this.canvas.text.width,
       this.canvas.text.height
     );
+    this.ctx.marker.clearRect(
+      0,
+      0,
+      this.canvas.marker.width,
+      this.canvas.marker.height
+    );
     if (triggerEvent) {
-      this.props.onSyncDataChange && this.props.onSyncDataChange({ status: 'clear' });
+      this.props.onSyncDataChange &&
+        this.props.onSyncDataChange({ status: "clear" });
     }
   };
 
@@ -786,7 +990,7 @@ export default class extends PureComponent {
     }
   };
 
-  drawGrid = ctx => {
+  drawGrid = (ctx) => {
     if (this.props.hideGrid) return;
 
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -856,9 +1060,14 @@ export default class extends PureComponent {
     ctx.fill();
   };
 
-  snapshot = (includeBackground = true, scale = 1, bgOriginalSize = false, copyOriginal = false) => {
-    if (!this.video && !this.image) {
-      throw new Error('No source for snapshot');
+  snapshot = (
+    includeBackground = true,
+    scale = 1,
+    bgOriginalSize = false,
+    copyOriginal = false
+  ) => {
+    if (includeBackground && !this.video && !this.image) {
+      throw new Error("No source for snapshot");
     }
 
     // default target = drawing canvas
@@ -873,7 +1082,9 @@ export default class extends PureComponent {
       } else if (this.video) {
         // get video track's resolution
         if (this.video.srcObject) {
-          const { width, height } = this.video.srcObject.getVideoTracks()[0].getSettings();
+          const { width, height } = this.video.srcObject
+            .getVideoTracks()[0]
+            .getSettings();
           targetWidth = width;
           targetHeight = height;
         } else {
@@ -897,7 +1108,13 @@ export default class extends PureComponent {
         // take video snapshot into background
         // NOTE: video will be stretched if it's smaller than canvas
         // copy video to snapshot canvas
-        this.ctx.snapshot.drawImage(this.video, 0, 0, targetWidth, targetHeight);
+        this.ctx.snapshot.drawImage(
+          this.video,
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        );
       } else if (this.image) {
         drawImage({ ctx: this.ctx.snapshot, img: this.image });
       }
@@ -908,9 +1125,34 @@ export default class extends PureComponent {
       returnValue.original = this.canvas.snapshot.toDataURL("image/jpeg"); // data:base64
     }
 
-    this.ctx.snapshot.drawImage(this.canvas.drawing, 0, 0, targetWidth, targetHeight);
-    this.ctx.snapshot.drawImage(this.canvas.text, 0, 0, targetWidth, targetHeight);
-    this.ctx.snapshot.drawImage(this.canvas.temp, 0, 0, targetWidth, targetHeight);
+    this.ctx.snapshot.drawImage(
+      this.canvas.drawing,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
+    this.ctx.snapshot.drawImage(
+      this.canvas.text,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
+    this.ctx.snapshot.drawImage(
+      this.canvas.temp,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
+    this.ctx.snapshot.drawImage(
+      this.canvas.marker,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
     // take a snapshot with image
     returnValue.snapshot = this.canvas.snapshot.toDataURL("image/jpeg"); // data:base64
 
@@ -938,21 +1180,26 @@ export default class extends PureComponent {
     this.lastChange = {
       width: this.props.canvasWidth,
       height: this.props.canvasHeight,
-      status: 'move',
+      status: "move",
       index: this.state.selectedText,
       text,
     };
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
   };
 
-  drawText = (canvas = 'text') => {
-    this.ctx[canvas].clearRect(0, 0, this.canvas[canvas].width, this.canvas[canvas].height);
+  drawText = (canvas = "text") => {
+    this.ctx[canvas].clearRect(
+      0,
+      0,
+      this.canvas[canvas].width,
+      this.canvas[canvas].height
+    );
     for (var i = 0; i < this.texts.length; i++) {
       var text = this.texts[i];
       this.ctx[canvas].font = this.getFont(text.fontFamily, text.ratio);
 
       // draw text from top
-      this.ctx[canvas].textBaseline = 'top';
+      this.ctx[canvas].textBaseline = "top";
 
       if (text.bgColor) {
         // get background dimensions
@@ -963,8 +1210,8 @@ export default class extends PureComponent {
         this.ctx[canvas].fillRect(
           text.x - _.toInteger(text.bgPaddingVertical),
           text.y - _.toInteger(text.bgPaddingHorizontal),
-          fontWidth + (_.toInteger(text.bgPaddingVertical) * 2),
-          fontHeight + (_.toInteger(text.bgPaddingHorizontal) * 2)
+          fontWidth + _.toInteger(text.bgPaddingVertical) * 2,
+          fontHeight + _.toInteger(text.bgPaddingHorizontal) * 2
         );
       }
 
@@ -978,15 +1225,15 @@ export default class extends PureComponent {
     if (ratio) {
       // scale font based on ratio
       var size = this.props.canvasWidth * ratio; // get font size based on current width
-      return (size | 0) + 'px ' + fontFamily; // set font
+      return (size | 0) + "px " + fontFamily; // set font
     }
     return `${this.state.fontSize}px ${this.state.fontFamily}`;
-  };
+  }
 
   getFontRatio() {
     var ratio = this.state.fontSize / this.props.canvasWidth; // calc ratio
     return ratio;
-  };
+  }
 
   onFinishEditText = () => {
     if (_.isEmpty(_.trim(this.state.text))) {
@@ -1019,18 +1266,27 @@ export default class extends PureComponent {
     const offsetX = 50;
 
     let nextInputX = text.x;
-    let nextInputY = Math.min(text.y + this.state.textHeight, this.canvas.temp.height - bottomOffset);
-    if (text.y + this.state.textHeight > this.canvas.temp.height - bottomOffset) {
+    let nextInputY = Math.min(
+      text.y + this.state.textHeight,
+      this.canvas.temp.height - bottomOffset
+    );
+    if (
+      text.y + this.state.textHeight >
+      this.canvas.temp.height - bottomOffset
+    ) {
       nextInputX = nextInputX + offsetX;
-      nextInputY = _.get(this.props, 'inputProps.top', 50);
+      nextInputY = _.get(this.props, "inputProps.top", 50);
     }
-    this.setState({ text: '', clickedPosition: { x: nextInputX, y: nextInputY } });
+    this.setState({
+      text: "",
+      clickedPosition: { x: nextInputX, y: nextInputY },
+    });
 
     this.lastChange = {
       width: this.props.canvasWidth,
       height: this.props.canvasHeight,
-      status: 'new',
-      text: _.last(this.texts)
+      status: "new",
+      text: _.last(this.texts),
     };
     this.triggerOnChange();
     this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
@@ -1046,10 +1302,10 @@ export default class extends PureComponent {
           touchAction: "none",
           width: this.props.canvasWidth,
           height: this.props.canvasHeight,
-          position: 'relative',
-          ...this.props.style
+          position: "relative",
+          ...this.props.style,
         }}
-        ref={container => {
+        ref={(container) => {
           if (container) {
             this.canvasContainer = container;
           }
@@ -1057,8 +1313,8 @@ export default class extends PureComponent {
       >
         {(this.props.videoSrc || this.props.videoStream) && (
           <video
-            ref={(video) => this.video = video}
-            style={{ ...canvasStyle, backgroundColor: '#fff', zIndex: 9 }}
+            ref={(video) => (this.video = video)}
+            style={{ ...canvasStyle, backgroundColor: "#fff", zIndex: 9 }}
             onLoadedData={() => {
               this.video && this.video.play();
             }}
@@ -1066,16 +1322,26 @@ export default class extends PureComponent {
             crossOrigin="Anonymous"
             {...this.props.videoProps}
           >
-            <source rel="noopener noreferrer" src={this.props.videoSrc} crossOrigin="Anonymous" />
+            <source
+              rel="noopener noreferrer"
+              src={this.props.videoSrc}
+              crossOrigin="Anonymous"
+            />
           </video>
         )}
         {canvasTypes.map(({ name, zIndex }) => {
           const isInterface = name === "interface";
-          const hiddenStyle = (name === "snapshot" || (isInterface && this.props.hideInterface)) ? { display: 'none' } : {};
+          const hiddenStyle =
+            name === "snapshot" || (isInterface && this.props.hideInterface)
+              ? { display: "none" }
+              : {};
+          {
+            /* const layerZIndex = this.props.mode === "marker" ? 16 : zIndex; */
+          }
           return (
             <canvas
               key={name}
-              ref={canvas => {
+              ref={(canvas) => {
                 if (canvas) {
                   this.canvas[name] = canvas;
                   this.ctx[name] = canvas.getContext("2d");
@@ -1094,17 +1360,17 @@ export default class extends PureComponent {
           );
         })}
 
-        {this.props.mode === 'text' && this.state.textinput && (
+        {this.props.mode === "text" && this.state.textinput && (
           <input
-            ref={(input) => this.inputtext = input}
+            ref={(input) => (this.inputtext = input)}
             type="text"
             autoFocus
             style={{
-              backgroundColor: 'transparent',
+              backgroundColor: "transparent",
               border: `1px #ddd solid`,
               padding: 5,
               ...this.props.inputProps,
-              position: 'absolute',
+              position: "absolute",
               zIndex: 20, // should be on the top of all canvas
               left: this.state.clickedPosition.x,
               top: this.state.clickedPosition.y,

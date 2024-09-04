@@ -1,15 +1,14 @@
 import React from "react";
-import { render } from "react-dom";
 import _ from "lodash";
 
 import CanvasDraw from "../../src";
-import classNames from "./index.css";
 
 export default function (props) {
+  const [mode, setMode] = React.useState("brush");
   const [markers, setMarkers] = React.useState([]);
+  const [snapshotImage, setSnapshotImage] = React.useState();
 
-  const saveableCanvasRef = React.useRef();
-  const loadableCanvasRef = React.useRef();
+  const markersCanvasRef = React.useRef();
 
   const defaultMarkers = [
     {
@@ -50,6 +49,8 @@ export default function (props) {
     <div>
       <p />
       <h1>Editable makers</h1>
+      <button onClick={() => setMode("brush")}>Brush Mode</button>
+      <button onClick={() => setMode("marker")}>Markers Mode</button>
       <button
         onClick={() => {
           if (markers.length < defaultMarkers.length) {
@@ -59,39 +60,47 @@ export default function (props) {
       >
         Add marker
       </button>
-      <CanvasDraw
-        key="canvasMarkers"
-        ref={saveableCanvasRef}
-        markers={markers}
-        saveData={localStorage.getItem("savedDrawingMarker")}
-      />
-
-      <p />
       <button
         onClick={() => {
-          localStorage.setItem(
-            "savedDrawingMarker",
-            saveableCanvasRef.current.getSaveData()
-          );
-        }}
-      >
-        Save
-      </button>
-      <button
-        onClick={() => {
-          saveableCanvasRef.current.clear();
+          markersCanvasRef.current.clear();
         }}
       >
         Clear
       </button>
       <button
         onClick={() => {
-          saveableCanvasRef.current.undo();
+          markersCanvasRef.current.undo();
         }}
       >
         Undo
       </button>
-      <CanvasDraw ref={loadableCanvasRef} key="canvasToCopyMarkers" />
+      <div
+        style={{
+          width: 910,
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
+        <CanvasDraw
+          key="canvasMarkers"
+          ref={markersCanvasRef}
+          markers={markers}
+          disabled={mode !== "brush"}
+          hideInterface={mode !== "brush"}
+          mode={mode}
+        />
+      </div>
+      <p />
+      <button
+        onClick={() => {
+          const { snapshot } = markersCanvasRef.current.snapshot(false);
+          setSnapshotImage(snapshot);
+        }}
+      >
+        take a snapshot (original image size)
+      </button>
+      <p />
+      <img src={snapshotImage} alt="snapshot" />
     </div>
   );
 }
