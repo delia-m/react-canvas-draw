@@ -135,7 +135,6 @@ export default class extends PureComponent {
     this.points = [];
     this.lines = [];
     this.texts = [];
-    this.markers = [];
 
     this.mouseHasMoved = true;
     this.valuesChanged = true;
@@ -184,7 +183,6 @@ export default class extends PureComponent {
 
     this.drawImage();
     this.drawVideo();
-    this.drawMarkers();
     this.loop();
 
     window.setTimeout(() => {
@@ -229,8 +227,8 @@ export default class extends PureComponent {
       this.drawVideo();
     }
 
-    if (prevProps.markers !== this.props.markers) {
-      this.drawMarkers();
+    if (_.size(prevProps.markers) < _.size(this.props.markers)) {
+      this.drawMarker(_.last(this.props.markers));
     }
 
     if (prevProps.imgSrc !== this.props.imgSrc) {
@@ -300,7 +298,14 @@ export default class extends PureComponent {
     }
   };
 
-  updateBubble = (textbox, rect, handle, poly, poly2, strokeWidth) => {
+  updateBubble = (
+    textbox,
+    rect,
+    handle,
+    poly,
+    poly2,
+    strokeWidth,
+  ) => {
     var arrowWidth = 16;
     //lets spare us some typing
     var x = textbox.left;
@@ -349,120 +354,111 @@ export default class extends PureComponent {
     textbox.lastTop = y;
   };
 
-  drawMarkers = () => {
-    if (_.isEmpty(this.props.markers)) {
+  drawMarker = (marker) => {
+    if (!marker) {
       return;
     }
-    var fabricCanvas =
+    const fabricCanvas =
       this.fabricCanvas || new fabric.Canvas(this.canvas.marker);
 
-    fabricCanvas.setDimensions({
-      width: this.canvas.marker.width,
-      height: this.canvas.marker.height,
-    });
+    if (marker) {
+      const { bgColor, borderColor, textColor, text } = marker;
+      var strokeWidth = 2;
+      var handleSize = 20;
 
-    _.map(this.props.markers, (marker, index) => {
-      if (!_.some(this.markers, { id: marker.id })) {
-        const { bgColor, borderColor, textColor, text } = marker;
-        var strokeWidth = 2;
-        var handleSize = 20;
+      var textbox = new fabric.Textbox(text, {
+        fill: textColor,
+        left: _.size(this.props.markers) * 10 + 200,
+        top: _.size(this.props.markers) * 10 + 80,
+        width: 30,
+        fontSize: 20,
+        fontFamily: "sans-serif",
+        textAlign: "center",
+        originY: "center",
+        originX: "center",
+        lockRotation: true,
+      });
 
-        var textbox = new fabric.Textbox(text, {
-          fill: textColor,
-          left: index * 10 + 200,
-          top: index * 10 + 80,
-          width: 30,
-          fontSize: 20,
-          fontFamily: "sans-serif",
-          textAlign: "center",
-          originY: "center",
-          originX: "center",
-          lockRotation: true,
-        });
+      //call setCoords whenever the textbox moved
+      var setCoords = textbox.setCoords.bind(textbox);
+      textbox.on({
+        moving: setCoords,
+        scaling: setCoords,
+        rotating: setCoords,
+      });
 
-        //call setCoords whenever the textbox moved
-        var setCoords = textbox.setCoords.bind(textbox);
-        textbox.on({
-          moving: setCoords,
-          scaling: setCoords,
-          rotating: setCoords,
-        });
+      //to detect changes in the textbox position and update the handle when the textbox was moved, let's store the last known coords
+      textbox.lastLeft = textbox.left;
+      textbox.lastTop = textbox.top;
 
-        //to detect changes in the textbox position and update the handle when the textbox was moved, let's store the last known coords
-        textbox.lastLeft = textbox.left;
-        textbox.lastTop = textbox.top;
+      //speech bubble tail handle
+      var handle = new fabric.Rect({
+        fill: "transparent",
+        left: _.size(this.props.markers) * 10 + 200,
+        top: _.size(this.props.markers) * 10 + 120,
+        width: handleSize,
+        height: handleSize,
+        hasRotatingPoint: false,
+        hasControls: false,
+        originY: "center",
+        originX: "center",
+      });
 
-        //speech bubble tail handle
-        var handle = new fabric.Rect({
-          fill: "transparent",
-          left: index * 10 + 200,
-          top: index * 10 + 120,
-          width: handleSize,
-          height: handleSize,
-          hasRotatingPoint: false,
-          hasControls: false,
-          originY: "center",
-          originX: "center",
-        });
+      //speech bubble background box
+      var rect = new fabric.Rect({
+        fill: bgColor,
+        stroke: borderColor,
+        strokeWidth: strokeWidth,
+        rx: 3,
+        ry: 3,
+        objectCaching: false,
+      });
 
-        //speech bubble background box
-        var rect = new fabric.Rect({
+      //speech bubble tail polygon
+      var poly = new fabric.Polygon(
+        [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 },
+          { x: 1, y: 0 },
+        ],
+        {
           fill: bgColor,
           stroke: borderColor,
           strokeWidth: strokeWidth,
-          rx: 3,
-          ry: 3,
           objectCaching: false,
-        });
+        }
+      );
 
-        //speech bubble tail polygon
-        var poly = new fabric.Polygon(
-          [
-            { x: 0, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 0 },
-          ],
-          {
-            fill: bgColor,
-            stroke: borderColor,
-            strokeWidth: strokeWidth,
-            objectCaching: false,
-          }
-        );
+      //2nd tail poly to overlay the bubble stroke
+      var poly2 = new fabric.Polygon(
+        [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 },
+          { x: 1, y: 0 },
+        ],
+        {
+          fill: bgColor,
+          objectCaching: false,
+        }
+      );
 
-        //2nd tail poly to overlay the bubble stroke
-        var poly2 = new fabric.Polygon(
-          [
-            { x: 0, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 0 },
-          ],
-          {
-            fill: bgColor,
-            objectCaching: false,
-          }
-        );
+      fabricCanvas.add(poly, rect, poly2, textbox);
+      fabricCanvas.add(handle);
 
-        fabricCanvas.add(poly, rect, poly2, textbox);
-        fabricCanvas.add(handle);
-        fabricCanvas.on("after:render", () =>
-          this.updateBubble(textbox, rect, handle, poly, poly2, strokeWidth)
-        );
+      fabricCanvas.on("after:render", () => {
         this.updateBubble(textbox, rect, handle, poly, poly2, strokeWidth);
 
-        this.fabricCanvas = fabricCanvas;
-        this.markers.push(marker);
-      }
-    });
+        this.lastChange = {
+          ...this.lastChange,
+          fabric: JSON.stringify(),
+        };
 
-    this.lastChange = {
-      ...this.lastChange,
-      fabric: fabricCanvas.toJSON(),
-    };
-
-    // this.triggerOnChange();
-    console.log("[drawMarkers] this.lastChange:", this.lastChange.fabric);
-    this.props.onSyncDataChange && this.props.onSyncDataChange(this.lastChange);
+        this.props.onSyncDataChange &&
+          this.props.onSyncDataChange(this.lastChange);
+      });
+      this.updateBubble(textbox, rect, handle, poly, poly2, strokeWidth);
+      this.fabricCanvas = fabricCanvas;
+    }
   };
 
   playVideo = () => {
@@ -478,6 +474,22 @@ export default class extends PureComponent {
         this.props.onSyncDataChange &&
           this.props.onSyncDataChange(this.lastChange);
       }
+      return;
+    }
+
+    if (mode === "marker") {
+      const fabricCanvas =
+        this.fabricCanvas || new fabric.Canvas(this.canvas.marker);
+      const currentObjects = fabricCanvas.getObjects();
+
+      if (_.size(currentObjects) > 0) {
+        for (var i = 0; i < 5; i++) {
+          // remove last 5 objects from canvas as 1 bubble marker has 5 objects
+          fabricCanvas.remove(currentObjects.pop());
+          fabricCanvas.renderAll.bind(fabricCanvas);
+        }
+      }
+      this.fabricCanvas = fabricCanvas;
       return;
     }
 
@@ -961,12 +973,13 @@ export default class extends PureComponent {
       this.canvas.text.width,
       this.canvas.text.height
     );
-    this.ctx.marker.clearRect(
-      0,
-      0,
-      this.canvas.marker.width,
-      this.canvas.marker.height
-    );
+
+    // clear markers
+    const fabricCanvas =
+      this.fabricCanvas || new fabric.Canvas(this.canvas.marker);
+    fabricCanvas.clear();
+    this.fabricCanvas = fabricCanvas;
+
     if (triggerEvent) {
       this.props.onSyncDataChange &&
         this.props.onSyncDataChange({ status: "clear" });
@@ -1335,9 +1348,6 @@ export default class extends PureComponent {
             name === "snapshot" || (isInterface && this.props.hideInterface)
               ? { display: "none" }
               : {};
-          {
-            /* const layerZIndex = this.props.mode === "marker" ? 16 : zIndex; */
-          }
           return (
             <canvas
               key={name}

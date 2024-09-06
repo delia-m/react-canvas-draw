@@ -16,7 +16,7 @@ export default function (props) {
       bgColor: "#0f0",
       textColor: "#000",
       borderColor: "#000",
-      text: "1",
+      text: "PASS",
       label: "PASS",
     },
     {
@@ -24,7 +24,7 @@ export default function (props) {
       bgColor: "#ff0",
       textColor: "#000",
       borderColor: "#000",
-      text: "1",
+      text: "ISSUE",
       label: "ISSUE",
     },
     {
@@ -32,7 +32,7 @@ export default function (props) {
       bgColor: "#f00",
       textColor: "#fff",
       borderColor: "#000",
-      text: "1",
+      text: "FAIL",
       label: "FAIL",
     },
     {
@@ -40,7 +40,7 @@ export default function (props) {
       bgColor: "#00f",
       textColor: "#fff",
       borderColor: "#000",
-      text: "1",
+      text: "INFO",
       label: "INFO",
     },
   ];
@@ -48,13 +48,14 @@ export default function (props) {
   return (
     <div>
       <p />
-      <h1>Editable makers</h1>
+      <h1>Editable markers</h1>
       <button onClick={() => setMode("brush")}>Brush Mode</button>
       <button onClick={() => setMode("marker")}>Markers Mode</button>
       <button
         onClick={() => {
           if (markers.length < defaultMarkers.length) {
             setMarkers(_.concat(markers, defaultMarkers[markers.length]));
+            setMode("marker");
           }
         }}
       >
@@ -88,6 +89,7 @@ export default function (props) {
           disabled={mode !== "brush"}
           hideInterface={mode !== "brush"}
           mode={mode}
+          imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg"
         />
       </div>
       <p />
