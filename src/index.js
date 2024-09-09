@@ -298,14 +298,7 @@ export default class extends PureComponent {
     }
   };
 
-  updateBubble = (
-    textbox,
-    rect,
-    handle,
-    poly,
-    poly2,
-    strokeWidth,
-  ) => {
+  updateBubble = (textbox, rect, handle, poly, poly2, strokeWidth) => {
     var arrowWidth = 16;
     //lets spare us some typing
     var x = textbox.left;
@@ -626,11 +619,13 @@ export default class extends PureComponent {
   };
 
   handleDrawStart = (e) => {
+    console.log(1, "handleDrawStart");
     if (this.props.onDrawStart) {
       if (!this.props.onDrawStart(e)) {
         return;
       }
     }
+    console.log(111111);
 
     e.preventDefault();
 
@@ -668,6 +663,7 @@ export default class extends PureComponent {
   };
 
   handleDrawMove = (e) => {
+    console.log("[handleDrawMove");
     if (this.props.mode === "text") {
       this.handleTextMode(e);
     }
@@ -1345,7 +1341,10 @@ export default class extends PureComponent {
         {canvasTypes.map(({ name, zIndex }) => {
           const isInterface = name === "interface";
           const hiddenStyle =
-            name === "snapshot" || (isInterface && this.props.hideInterface)
+            name === "snapshot" ||
+            (isInterface &&
+              this.props.hideInterface &&
+              this.props.mode === "marker") // interface should be hidden for marker as fabric handles all the events
               ? { display: "none" }
               : {};
           return (
@@ -1357,6 +1356,7 @@ export default class extends PureComponent {
                   this.ctx[name] = canvas.getContext("2d");
                 }
               }}
+              id={name}
               style={{ ...canvasStyle, ...hiddenStyle, zIndex }}
               onMouseDown={isInterface ? this.handleDrawStart : undefined}
               onMouseMove={isInterface ? this.handleDrawMove : undefined}
