@@ -619,15 +619,15 @@ export default class extends PureComponent {
   };
 
   handleDrawStart = (e) => {
-    console.log(1, "handleDrawStart");
     if (this.props.onDrawStart) {
       if (!this.props.onDrawStart(e)) {
         return;
       }
     }
-    console.log(111111);
 
-    e.preventDefault();
+    if (!_.has(e, "touches")) {
+      e.preventDefault();
+    }
 
     // Start drawing
     this.isPressing = true;
@@ -663,19 +663,22 @@ export default class extends PureComponent {
   };
 
   handleDrawMove = (e) => {
-    console.log("[handleDrawMove");
     if (this.props.mode === "text") {
       this.handleTextMode(e);
     }
 
-    e.preventDefault();
+    if (!_.has(e, "touches")) {
+      e.preventDefault();
+    }
 
     const { x, y } = this.getPointerPos(e);
     this.handlePointerMove(x, y);
   };
 
   handleDrawEnd = (e) => {
-    e.preventDefault();
+    if (!_.has(e, "touches")) {
+      e.preventDefault();
+    }
 
     // Draw to this end pos
     this.handleDrawMove(e);
@@ -1173,7 +1176,9 @@ export default class extends PureComponent {
       return;
     }
 
-    e.preventDefault();
+    if (!_.has(e, "touches")) {
+      e.preventDefault();
+    }
     const { x, y } = this.getPointerPos(e);
 
     // Put your mousemove stuff here
