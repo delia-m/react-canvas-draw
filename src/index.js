@@ -1363,14 +1363,10 @@ export default class extends PureComponent {
               }}
               id={name}
               style={{ ...canvasStyle, ...hiddenStyle, zIndex }}
-              onMouseDown={isInterface ? this.handleDrawStart : undefined}
-              onMouseMove={isInterface ? this.handleDrawMove : undefined}
-              onMouseUp={isInterface ? this.handleDrawEnd : undefined}
-              onMouseOut={isInterface ? this.handleDrawEnd : undefined}
-              onTouchStart={isInterface ? this.handleDrawStart : undefined}
-              onTouchMove={isInterface ? this.handleDrawMove : undefined}
-              onTouchEnd={isInterface ? this.handleDrawEnd : undefined}
-              onTouchCancel={isInterface ? this.handleDrawEnd : undefined}
+              onPointerDown={isInterface ? this.handleDrawStart : undefined}
+              onPointerMove={isInterface ? this.handleDrawMove : undefined}
+              onPointerUp={isInterface ? this.handleDrawEnd : undefined}
+              onPointerOut={isInterface ? this.handleDrawEnd : undefined}
             />
           );
         })}
