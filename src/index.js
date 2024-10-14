@@ -354,6 +354,9 @@ export default class extends PureComponent {
     const fabricCanvas =
       this.fabricCanvas || new fabric.Canvas(this.canvas.marker);
 
+    // NOTE: should use pointer events as touchMove not firing in mobile
+    this.fabricCanvas.enablePointerEvents = true;
+
     if (marker) {
       const { bgColor, borderColor, textColor, text } = marker;
       var strokeWidth = 2;
